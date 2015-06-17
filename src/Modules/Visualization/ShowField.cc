@@ -114,6 +114,9 @@ RenderState ShowFieldModule::getNodeRenderState(
 {
   RenderState renState;
 
+  bool useColorMap = state->getValue(ShowFieldModule::NodeColoring).toInt() == 1;
+  bool rgbConversion = state->getValue(ShowFieldModule::NodeColoring).toInt() == 2;
+
   renState.set(RenderState::IS_ON, state->getValue(ShowFieldModule::ShowNodes).toBool());
   renState.set(RenderState::USE_TRANSPARENT_NODES, state->getValue(ShowFieldModule::NodeTransparency).toBool());
 
@@ -129,15 +132,16 @@ RenderState ShowFieldModule::getNodeRenderState(
                                 renState.defaultColor.b() / 255.)
                             :   renState.defaultColor;
 
-  if (colorMap)
+  if (colorMap && useColorMap)
   {
     renState.set(RenderState::USE_COLORMAP, true);
   }
+  else if (rgbConversion)
+  {
+    renState.set(RenderState::USE_COLOR_CONVERT, true);
+  }
   else
   {
-    /// \todo Set this value dependent on the radio button choice in the
-    ///       dialog. Presumably this should overwrite any choice made by the
-    ///       user.
     renState.set(RenderState::USE_DEFAULT_COLOR, true);
   }
 
@@ -149,6 +153,9 @@ RenderState ShowFieldModule::getEdgeRenderState(
   boost::optional<boost::shared_ptr<SCIRun::Core::Datatypes::ColorMap>> colorMap)
 {
   RenderState renState;
+
+  bool useColorMap = state->getValue(ShowFieldModule::EdgeColoring).toInt() == 1;
+  bool rgbConversion = state->getValue(ShowFieldModule::EdgeColoring).toInt() == 2;
 
   renState.set(RenderState::IS_ON, state->getValue(ShowFieldModule::ShowEdges).toBool());
   renState.set(RenderState::USE_TRANSPARENT_EDGES, state->getValue(ShowFieldModule::EdgeTransparency).toBool());
@@ -166,9 +173,13 @@ RenderState ShowFieldModule::getEdgeRenderState(
 
   edgeTransparencyValue_ = (float)(state->getValue(ShowFieldModule::EdgeTransparencyValue).toDouble());
 
-  if (colorMap)
+  if (colorMap && useColorMap)
   {
     renState.set(RenderState::USE_COLORMAP, true);
+  }
+  else if (rgbConversion)
+  {
+    renState.set(RenderState::USE_COLOR_CONVERT, true);
   }
   else
   {
@@ -183,6 +194,9 @@ RenderState ShowFieldModule::getFaceRenderState(
   boost::optional<boost::shared_ptr<SCIRun::Core::Datatypes::ColorMap>> colorMap)
 {
   RenderState renState;
+
+  bool useColorMap = state->getValue(ShowFieldModule::FaceColoring).toInt() == 1;
+  bool rgbConversion = state->getValue(ShowFieldModule::FaceColoring).toInt() == 2;
 
   renState.set(RenderState::IS_ON, state->getValue(ShowFieldModule::ShowFaces).toBool());
   renState.set(RenderState::USE_TRANSPARENCY, state->getValue(ShowFieldModule::FaceTransparency).toBool());
@@ -199,9 +213,13 @@ RenderState ShowFieldModule::getFaceRenderState(
 
   faceTransparencyValue_ = (float)(state->getValue(ShowFieldModule::FaceTransparencyValue).toDouble());
 
-  if (colorMap)
+  if (colorMap && useColorMap)
   {
     renState.set(RenderState::USE_COLORMAP, true);
+  }
+  else if (rgbConversion)
+  {
+    renState.set(RenderState::USE_COLOR_CONVERT, true);
   }
   else
   {
@@ -291,7 +309,6 @@ void ShowFieldModule::renderFaces(
     std::cout << "Non linear faces not supported at this time." << std::endl;
   }
 }
-
 
 void ShowFieldModule::renderFacesLinear(
   boost::shared_ptr<SCIRun::Field> field,
@@ -447,54 +464,110 @@ void ShowFieldModule::renderFacesLinear(
       VMesh::Elem::array_type cells;
       mesh->get_elems(cells, *fiter);
 
-      if (fld->is_scalar())
+      if (colorScheme == GeometryObject::COLOR_MAP)
       {
-        fld->get_value(svals[0], cells[0]);
+        if (fld->is_scalar())
+        {
+          fld->get_value(svals[0], cells[0]);
 
-        if (cells.size() > 1)
-        {
-          fld->get_value(svals[1], cells[1]);
+          if (cells.size() > 1)
+          {
+            fld->get_value(svals[1], cells[1]);
+          }
+          else
+          {
+            svals[1] = svals[0];
+          }
+          face_colors[0] = map->valueToColor(svals[0]);
+          face_colors[1] = map->valueToColor(svals[1]);
         }
-        else
+        else if (fld->is_vector())
         {
-          svals[1] = svals[0];
+          fld->get_value(vvals[0], cells[0]);
+
+          if (cells.size() > 1)
+          {
+            fld->get_value(vvals[1], cells[1]);
+          }
+          else
+          {
+            vvals[1] = vvals[0];
+          }
+
+          face_colors[0] = map->valueToColor(vvals[0]);
+          face_colors[1] = map->valueToColor(vvals[1]);
         }
-        face_colors[0] = map->valueToColor(svals[0]);
-        face_colors[1] = map->valueToColor(svals[1]);
+        else if (fld->is_tensor())
+        {
+          fld->get_value(tvals[0], cells[0]);
+
+          if (cells.size() > 1)
+          {
+            fld->get_value(tvals[1], cells[1]);
+          }
+          else
+          {
+            tvals[1] = tvals[0];
+          }
+
+          face_colors[0] = map->valueToColor(tvals[0]);
+          face_colors[1] = map->valueToColor(tvals[1]);
+        }
       }
-      else if (fld->is_vector())
+      else if (colorScheme == GeometryObject::COLOR_IN_SITU)
       {
-        fld->get_value(vvals[0], cells[0]);
+        Vector colorVector0;
+        Vector colorVector1;
 
-        if (cells.size() > 1)
+        if (fld->is_scalar())
         {
-          fld->get_value(vvals[1], cells[1]);
+          if (cells.size() > 1)
+          {
+            fld->get_value(svals[1], cells[1]);
+          }
+          else
+          {
+            svals[1] = svals[0];
+          }
+          colorVector0 = Vector(idpt.x(), idpt.y(), idpt.z()).normal();
+          face_colors[0] = ColorRGB(colorVector0.x(), colorVector0.y(), colorVector0.z());
+          face_colors[1] = ColorRGB(colorVector0.x(), colorVector0.y(), colorVector0.z());
         }
-        else
+        else if (fld->is_vector())
         {
-          svals[1] = svals[0];
-        }
+          fld->get_value(vvals[0], cells[0]);
 
-        face_colors[0] = map->valueToColor(vvals[0]);
-        face_colors[1] = map->valueToColor(vvals[1]);
+          if (cells.size() > 1)
+          {
+            fld->get_value(vvals[1], cells[1]);
+          }
+          else
+          {
+            vvals[1] = vvals[0];
+          }
+          colorVector0 = vvals[0].normal();
+          colorVector1 = vvals[1].normal();
+          face_colors[0] = ColorRGB(colorVector0.x(), colorVector0.y(), colorVector0.z());
+          face_colors[1] = ColorRGB(colorVector1.x(), colorVector1.y(), colorVector1.z());
+        }
+        else if (fld->is_tensor())
+        {
+          fld->get_value(tvals[0], cells[0]);
+
+          if (cells.size() > 1)
+          {
+            fld->get_value(tvals[1], cells[1]);
+          }
+          else
+          {
+            tvals[1] = tvals[0];
+          }
+          colorVector0 = tvals[0].get_eigenvector1().normal();
+          colorVector1 = tvals[1].get_eigenvector1().normal();
+          face_colors[0] = ColorRGB(colorVector0.x(), colorVector0.y(), colorVector0.z());
+          face_colors[1] = ColorRGB(colorVector1.x(), colorVector1.y(), colorVector1.z());
+        }
       }
-      else if (fld->is_tensor())
-      {
-        fld->get_value(tvals[0], cells[0]);
-
-        if (cells.size() > 1)
-        {
-          fld->get_value(tvals[1], cells[1]);
-        }
-        else
-        {
-          svals[1] = svals[0];
-        }
-
-        face_colors[0] = map->valueToColor(tvals[0]);
-        face_colors[1] = map->valueToColor(tvals[1]);
-      }
-
       state.set(RenderState::IS_DOUBLE_SIDED, true);
 
       addFaceGeom(points, normals, withNormals, iboIndex, iboBuffer, vboBuffer,
@@ -509,20 +582,45 @@ void ShowFieldModule::renderFacesLinear(
       vvals.resize(1);
       tvals.resize(1);
       face_colors.resize(nodes.size());
-      if (fld->is_scalar())
+      if (colorScheme == GeometryObject::COLOR_MAP)
       {
-        fld->get_value(svals[0], *fiter);
-        face_colors[0] = map->valueToColor(svals[0]);
+        if (fld->is_scalar())
+        {
+          fld->get_value(svals[0], *fiter);
+          face_colors[0] = map->valueToColor(svals[0]);
+        }
+        else if (fld->is_vector())
+        {
+          fld->get_value(vvals[0], *fiter);
+          face_colors[0] = map->valueToColor(vvals[0]);
+        }
+        else if (fld->is_tensor())
+        {
+          fld->get_value(tvals[0], *fiter);
+          face_colors[0] = map->valueToColor(tvals[0]);
+        }
       }
-      else if (fld->is_vector())
+      else if (colorScheme == GeometryObject::COLOR_IN_SITU)
       {
-        fld->get_value(vvals[0], *fiter);
-        face_colors[0] = map->valueToColor(vvals[0]);
-      }
-      else if (fld->is_tensor())
-      {
-        fld->get_value(tvals[0], *fiter);
-        face_colors[0] = map->valueToColor(tvals[0]);
+        Vector colorVector;
+        if (fld->is_scalar())
+        {
+          fld->get_value(svals[0], *fiter);
+          colorVector = Vector(idpt.x(), idpt.y(), idpt.z()).normal();
+          face_colors[0] = ColorRGB(colorVector.x(), colorVector.y(), colorVector.z());
+        }
+        else if (fld->is_vector())
+        {
+          fld->get_value(vvals[0], *fiter);
+          colorVector = vvals[0].normal();
+          face_colors[0] = ColorRGB(colorVector.x(), colorVector.y(), colorVector.z());
+        }
+        else if (fld->is_tensor())
+        {
+          fld->get_value(tvals[0], *fiter);
+          colorVector = tvals[0].get_eigenvector1().normal();
+          face_colors[0] = ColorRGB(colorVector.x(), colorVector.y(), colorVector.z());
+        }
       }
 
       // Same color at all corners.
@@ -544,31 +642,64 @@ void ShowFieldModule::renderFacesLinear(
       tvals.resize(nodes.size());
       face_colors.resize(nodes.size());
       //node.size() possible colors.
-      if (fld->is_scalar())
+      if (colorScheme == GeometryObject::COLOR_MAP)
       {
-        for (size_t i = 0; i<nodes.size(); i++)
+        if (fld->is_scalar())
         {
-          fld->get_value(svals[i], nodes[i]);
-          face_colors[i] = map->valueToColor(svals[i]);
+          for (size_t i = 0; i < nodes.size(); i++)
+          {
+            fld->get_value(svals[i], nodes[i]);
+            face_colors[i] = map->valueToColor(svals[i]);
+          }
+        }
+        else if (fld->is_vector())
+        {
+          for (size_t i = 0; i < nodes.size(); i++)
+          {
+            fld->get_value(vvals[i], nodes[i]);
+            face_colors[i] = map->valueToColor(vvals[i]);
+          }
+        }
+        else if (fld->is_tensor())
+        {
+          for (size_t i = 0; i < nodes.size(); i++)
+          {
+            fld->get_value(tvals[i], nodes[i]);
+            face_colors[i] = map->valueToColor(tvals[i]);
+          }
         }
       }
-      else if (fld->is_vector())
+      else if (colorScheme == GeometryObject::COLOR_IN_SITU)
       {
-        for (size_t i = 0; i<nodes.size(); i++)
+        Vector colorVector;
+        if (fld->is_scalar())
         {
-          fld->get_value(vvals[i], nodes[i]);
-          face_colors[i] = map->valueToColor(vvals[i]);
+          for (size_t i = 0; i < nodes.size(); i++)
+          {
+            fld->get_value(svals[i], nodes[i]);
+            colorVector = Vector(idpt.x(), idpt.y(), idpt.z()).normal();
+            face_colors[i] = ColorRGB(colorVector.x(), colorVector.y(), colorVector.z());
+          }
+        }
+        else if (fld->is_vector())
+        {
+          for (size_t i = 0; i < nodes.size(); i++)
+          {
+            fld->get_value(vvals[i], nodes[i]);
+            colorVector = vvals[i].normal();
+            face_colors[i] = ColorRGB(colorVector.x(), colorVector.y(), colorVector.z());
+          }
+        }
+        else if (fld->is_tensor())
+        {
+          for (size_t i = 0; i < nodes.size(); i++)
+          {
+            fld->get_value(tvals[i], nodes[i]);
+            colorVector = tvals[i].get_eigenvector1().normal();
+            face_colors[i] = ColorRGB(colorVector.x(), colorVector.y(), colorVector.z());
+          }
         }
       }
-      else if (fld->is_tensor())
-      {
-        for (size_t i = 0; i<nodes.size(); i++)
-        {
-          fld->get_value(tvals[i], nodes[i]);
-          face_colors[i] = map->valueToColor(tvals[i]);
-        }
-      }
-
       addFaceGeom(points, normals, withNormals, iboIndex, iboBuffer, vboBuffer,
         colorScheme, face_colors, state);
     }
@@ -1112,23 +1243,49 @@ void ShowFieldModule::renderNodes(
     Core::Geometry::Point p;
     mesh->get_point(p, *eiter);
     //coloring options
+
     if (colorScheme != GeometryObject::COLOR_UNIFORM)
     {
-      ColorMapHandle map = colorMap.get();
-      if (fld->is_scalar())
+      if (colorScheme == GeometryObject::COLOR_MAP)
       {
-        fld->get_value(sval, *eiter);
-        node_color = map->valueToColor(sval);
+        ColorMapHandle map = colorMap.get();
+        if (fld->is_scalar())
+        {
+          fld->get_value(sval, *eiter);
+          node_color = map->valueToColor(sval);
+        }
+        else if (fld->is_vector())
+        {
+          fld->get_value(vval, *eiter);
+          node_color = map->valueToColor(vval);
+        }
+        else if (fld->is_tensor())
+        {
+          fld->get_value(tval, *eiter);
+          node_color = map->valueToColor(tval);
+        }
       }
-      else if (fld->is_vector())
+      if (colorScheme == GeometryObject::COLOR_IN_SITU)
       {
-        fld->get_value(vval, *eiter);
-        node_color = map->valueToColor(vval);
-      }
-      else if (fld->is_tensor())
-      {
-        fld->get_value(tval, *eiter);
-        node_color = map->valueToColor(tval);
+        Vector colorVector;
+        if (fld->is_scalar())
+        {
+          fld->get_value(sval, *eiter);
+          colorVector = Vector(p.x(), p.y(), p.z()).normal();
+          node_color = ColorRGB(colorVector.x(), colorVector.y(), colorVector.z());
+        }
+        else if (fld->is_vector())
+        {
+          fld->get_value(vval, *eiter);
+          colorVector = vval.normal();
+          node_color = ColorRGB(colorVector.x(), colorVector.y(), colorVector.z());
+        }
+        else if (fld->is_tensor())
+        {
+          fld->get_value(tval, *eiter);
+          colorVector = tval.get_eigenvector1().normal();
+          node_color = ColorRGB(colorVector.x(), colorVector.y(), colorVector.z());
+        }        
       }
     }
     //accumulate VBO or IBO data
@@ -1166,9 +1323,7 @@ void ShowFieldModule::renderEdges(
   GeometryObject::ColorScheme colorScheme = GeometryObject::COLOR_UNIFORM;
   ColorRGB edge_colors[2];
 
-  if (fld->basis_order() < 0 ||
-    (fld->basis_order() == 0 && mesh->dimensionality() != 0) ||
-    state.get(RenderState::USE_DEFAULT_COLOR))
+  if (fld->basis_order() < 0 || (fld->basis_order() == 0 && mesh->dimensionality() != 0) || state.get(RenderState::USE_DEFAULT_COLOR))
     colorScheme = GeometryObject::COLOR_UNIFORM;
   else if (state.get(RenderState::USE_COLORMAP))
     colorScheme = GeometryObject::COLOR_MAP;
@@ -1211,54 +1366,114 @@ void ShowFieldModule::renderEdges(
     //coloring options
     if (colorScheme != GeometryObject::COLOR_UNIFORM)
     {
-      ColorMapHandle map = colorMap.get();
-      if (fld->is_scalar())
+      if (colorScheme == GeometryObject::COLOR_MAP)
       {
-        if (fld->basis_order() == 1)
+        ColorMapHandle map = colorMap.get();
+        if (fld->is_scalar())
         {
-          fld->get_value(sval0, nodes[0]);
-          fld->get_value(sval1, nodes[1]);
-        }
-        else //if (mesh->dimensionality() == 1)
-        {
-          fld->get_value(sval0, *eiter);
+          if (fld->basis_order() == 1)
+          {
+            fld->get_value(sval0, nodes[0]);
+            fld->get_value(sval1, nodes[1]);
+          }
+          else //if (mesh->dimensionality() == 1)
+          {
+            fld->get_value(sval0, *eiter);
 
-          sval1 = sval0;
+            sval1 = sval0;
+          }
+          edge_colors[0] = map->valueToColor(sval0);
+          edge_colors[1] = map->valueToColor(sval1);
         }
-        edge_colors[0] = map->valueToColor(sval0);
-        edge_colors[1] = map->valueToColor(sval1);
+        else if (fld->is_vector())
+        {
+          if (fld->basis_order() == 1)
+          {
+            fld->get_value(vval0, nodes[0]);
+            fld->get_value(vval1, nodes[1]);
+          }
+          else //if (mesh->dimensionality() == 1)
+          {
+            fld->get_value(vval0, *eiter);
+            vval1 = vval0;
+          }
+
+          edge_colors[0] = map->valueToColor(vval0);
+          edge_colors[1] = map->valueToColor(vval1);
+        }
+        else if (fld->is_tensor())
+        {
+          if (fld->basis_order() == 1)
+          {
+            fld->get_value(tval0, nodes[0]);
+            fld->get_value(tval1, nodes[1]);
+          }
+          else //if (mesh->dimensionality() == 1)
+          {
+            fld->get_value(tval0, *eiter);
+            tval1 = tval0;
+          }
+
+          edge_colors[0] = map->valueToColor(tval0);
+          edge_colors[1] = map->valueToColor(tval1);
+        }
       }
-      else if (fld->is_vector())
+      if (colorScheme == GeometryObject::COLOR_IN_SITU)
       {
-        if (fld->basis_order() == 1)
+        Vector colorVector0;
+        Vector colorVector1;
+        if (fld->is_scalar())
         {
-          fld->get_value(vval0, nodes[0]);
-          fld->get_value(vval1, nodes[1]);
-        }
-        else //if (mesh->dimensionality() == 1)
-        {
-          fld->get_value(vval0, *eiter);
-          vval1 = vval0;
-        }
+          if (fld->basis_order() == 1)
+          {
+            fld->get_value(sval0, nodes[0]);
+            fld->get_value(sval1, nodes[1]);
+          }
+          else //if (mesh->dimensionality() == 1)
+          {
+            fld->get_value(sval0, *eiter);
 
-        edge_colors[0] = map->valueToColor(vval0);
-        edge_colors[1] = map->valueToColor(vval1);
-      }
-      else if (fld->is_tensor())
-      {
-        if (fld->basis_order() == 1)
-        {
-          fld->get_value(tval0, nodes[0]);
-          fld->get_value(tval1, nodes[1]);
+            sval1 = sval0;
+          }
+          colorVector0 = Vector(p0.x(), p0.y(), p0.z()).normal();
+          colorVector1 = Vector(p1.x(), p1.y(), p1.z()).normal();
+          edge_colors[0] = ColorRGB(colorVector0.x(), colorVector0.y(), colorVector0.z());
+          edge_colors[1] = ColorRGB(colorVector1.x(), colorVector1.y(), colorVector1.z());
         }
-        else //if (mesh->dimensionality() == 1)
+        else if (fld->is_vector())
         {
-          fld->get_value(tval0, *eiter);
-          tval1 = tval0;
+          if (fld->basis_order() == 1)
+          {
+            fld->get_value(vval0, nodes[0]);
+            fld->get_value(vval1, nodes[1]);
+          }
+          else //if (mesh->dimensionality() == 1)
+          {
+            fld->get_value(vval0, *eiter);
+            vval1 = vval0;
+          }
+          colorVector0 = vval0.normal();
+          colorVector1 = vval1.normal();
+          edge_colors[0] = ColorRGB(colorVector0.x(), colorVector0.y(), colorVector0.z());
+          edge_colors[1] = ColorRGB(colorVector1.x(), colorVector1.y(), colorVector1.z());
         }
-
-        edge_colors[0] = map->valueToColor(tval0);
-        edge_colors[1] = map->valueToColor(tval1);
+        else if (fld->is_tensor())
+        {
+          if (fld->basis_order() == 1)
+          {
+            fld->get_value(tval0, nodes[0]);
+            fld->get_value(tval1, nodes[1]);
+          }
+          else //if (mesh->dimensionality() == 1)
+          {
+            fld->get_value(tval0, *eiter);
+            tval1 = tval0;
+          }
+          colorVector0 = tval0.get_eigenvector1().normal();
+          colorVector1 = tval1.get_eigenvector1().normal();
+          edge_colors[0] = ColorRGB(colorVector0.x(), colorVector0.y(), colorVector0.z());
+          edge_colors[1] = ColorRGB(colorVector1.x(), colorVector1.y(), colorVector1.z());
+        }
       }
     }
     //accumulate VBO or IBO data
@@ -1299,3 +1514,6 @@ AlgorithmParameterName ShowFieldModule::SphereScaleValue("SphereScaleValue");
 AlgorithmParameterName ShowFieldModule::CylinderRadius("CylinderRadius");
 AlgorithmParameterName ShowFieldModule::CylinderResolution("CylinderResolution");
 AlgorithmParameterName ShowFieldModule::SphereResolution("SphereResolution");
+AlgorithmParameterName ShowFieldModule::NodeColoring("NodeColoring");
+AlgorithmParameterName ShowFieldModule::EdgeColoring("EdgeColoring");
+AlgorithmParameterName ShowFieldModule::FaceColoring("FaceColoring");

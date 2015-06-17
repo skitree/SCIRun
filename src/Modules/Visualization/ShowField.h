@@ -84,6 +84,9 @@ namespace SCIRun {
         static Core::Algorithms::AlgorithmParameterName CylinderResolution;
         static Core::Algorithms::AlgorithmParameterName SphereResolution;
         static Core::Algorithms::AlgorithmParameterName CylinderRadius;
+        static Core::Algorithms::AlgorithmParameterName NodeColoring;
+        static Core::Algorithms::AlgorithmParameterName EdgeColoring;
+        static Core::Algorithms::AlgorithmParameterName FaceColoring;
 
         INPUT_PORT(0, Field, LegacyField);
         INPUT_PORT(1, ColorMapObject, ColorMap);

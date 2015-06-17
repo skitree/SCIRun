@@ -61,12 +61,18 @@ ShowFieldDialog::ShowFieldDialog(const std::string& name, ModuleStateHandle stat
   addDoubleSpinBoxManager(cylinder_rad_spin, Parameters::CylinderRadius);
   addSpinBoxManager(cylinder_res_spin, ShowFieldModule::CylinderResolution);
   addSpinBoxManager(sphereResolutionSpinBox, ShowFieldModule::SphereResolution);
+  addRadioButtonGroupManager({ defaultNodeColoringButton_, colormapLookupNodeColoringButton_, conversionRGBNodeColoringButton_ }, ShowFieldModule::NodeColoring);
+  addRadioButtonGroupManager({ defaultEdgeColoringButton_, colormapLookupEdgeColoringButton_, conversionRGBEdgeColoringButton_ }, ShowFieldModule::EdgeColoring);
+  addRadioButtonGroupManager({ defaultFaceColoringButton_, colormapLookupFaceColoringButton_, conversionRGBFaceColoringButton_ }, ShowFieldModule::FaceColoring);
   addRadioButtonGroupManager({ edgesAsLinesButton_, edgesAsCylindersButton_ }, ShowFieldModule::EdgesAsCylinders);
   addRadioButtonGroupManager({ nodesAsPointsButton_, nodesAsSpheresButton_ }, ShowFieldModule::NodeAsSpheres);
 
   connectButtonsToExecuteSignal({ showNodesCheckBox_, showEdgesCheckBox_, showFacesCheckBox_, enableTransparencyNodesCheckBox_,
     enableTransparencyEdgesCheckBox_, enableTransparencyFacesCheckBox_, invertNormalsCheckBox, edgesAsLinesButton_,
-    edgesAsCylindersButton_, nodesAsPointsButton_, nodesAsSpheresButton_ });
+    edgesAsCylindersButton_, nodesAsPointsButton_, nodesAsSpheresButton_,
+    defaultNodeColoringButton_, colormapLookupNodeColoringButton_, conversionRGBNodeColoringButton_,
+    defaultEdgeColoringButton_, colormapLookupEdgeColoringButton_, conversionRGBEdgeColoringButton_,
+    defaultFaceColoringButton_, colormapLookupFaceColoringButton_, conversionRGBFaceColoringButton_ });
 
   createExecuteInteractivelyToggleAction();
 

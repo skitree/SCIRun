@@ -307,7 +307,7 @@ void ShowFieldGlyphs::renderVectors(
           ColorMapHandle map = colorMap.get();
           node_color = map->valueToColor(v.length());
         }
-        if (colorScheme == GeometryObject::COLOR_IN_SITU)
+        else if (colorScheme == GeometryObject::COLOR_IN_SITU)
         {
           Vector colorVector = inputVector.normal();
           node_color = ColorRGB(colorVector.x(), colorVector.y(), colorVector.z());
