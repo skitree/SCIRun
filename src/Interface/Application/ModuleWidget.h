@@ -123,7 +123,10 @@ public:
 
   void createStartupNote();
 
-  static const int PORT_SPACING = 3;
+  static const int SMALL_PORT_SPACING = 3;
+  static const int LARGE_PORT_SPACING = SMALL_PORT_SPACING * 4;
+  int portSpacing() const;
+  void setPortSpacing(bool highlighted);
 
   virtual boost::signals2::connection connectExecuteBegins(const SCIRun::Dataflow::Networks::ExecuteBeginsSignalType::slot_type& subscriber);
   virtual boost::signals2::connection connectExecuteEnds(const SCIRun::Dataflow::Networks::ExecuteEndsSignalType::slot_type& subscriber);
@@ -153,6 +156,7 @@ public Q_SLOTS:
   void collapseToMiniMode();
   void expandToFullMode();
   void updateMetadata(bool active);
+  void updatePortSpacing(bool highlighted);
   static void setGlobalMiniMode(bool mini);
 Q_SIGNALS:
   void removeModule(const SCIRun::Dataflow::Networks::ModuleId& moduleId);
@@ -193,6 +197,7 @@ private Q_SLOTS:
   void handleDialogFatalError(const QString& message);
   void changeExecuteButtonToPlay();
   void changeExecuteButtonToStop();
+  void updateDockWidgetProperties(bool isFloating);
 private:
   ModuleWidgetDisplayBase* currentDisplay_;
   ModuleWidgetDisplayPtr fullWidgetDisplay_;
@@ -224,6 +229,8 @@ private:
   Qt::DockWidgetArea allowedDockArea() const;
   void printInputPorts(const SCIRun::Dataflow::Networks::ModuleInfoProvider& moduleInfoProvider);
   QMenu* getReplaceWithMenu();
+  void setInputPortSpacing(bool highlighted);
+  void setOutputPortSpacing(bool highlighted);
 
   class ModuleLogWindow* logWindow_;
   boost::scoped_ptr<class ModuleActionsMenu> actionsMenu_;

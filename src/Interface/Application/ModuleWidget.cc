@@ -89,7 +89,7 @@ namespace Gui {
         << new QAction("Replace With", parent)
         << new QAction("Collapse", parent)
         << new QAction("Show Log", parent)
-        << disabled(new QAction("Make Sub-Network", parent))
+        //<< disabled(new QAction("Make Sub-Network", parent))  // Issue #287
         << separatorAction(parent)
         << new QAction("Destroy", parent));
     }
@@ -642,8 +642,8 @@ void ModuleWidget::setupModuleActions()
   connect(actionsMenu_->getAction("Help"), SIGNAL(triggered()), this, SLOT(launchDocumentation()));
   connect(actionsMenu_->getAction("Collapse"), SIGNAL(triggered()), this, SLOT(collapseToMiniMode()));
   connect(actionsMenu_->getAction("Duplicate"), SIGNAL(triggered()), this, SLOT(duplicate()));
-  if (isViewScene_)
-    actionsMenu_->getAction("Duplicate")->setDisabled(true);
+  if (isViewScene_ || theModule_->hasDynamicPorts()) //TODO: buggy combination, will disable for now. Fix is #1035
+    actionsMenu_->getMenu()->removeAction(actionsMenu_->getAction("Duplicate"));
 
   connectNoteEditorToAction(actionsMenu_->getAction("Notes"));
   connectUpdateNote(this);
@@ -707,6 +707,7 @@ void ModuleWidget::createInputPorts(const SCIRun::Dataflow::Networks::ModuleInfo
       this);
     hookUpGeneralPortSignals(w);
     connect(this, SIGNAL(connectionAdded(const SCIRun::Dataflow::Networks::ConnectionDescription&)), w, SLOT(MakeTheConnection(const SCIRun::Dataflow::Networks::ConnectionDescription&)));
+    connect(w, SIGNAL(highlighted(bool)), this, SLOT(updatePortSpacing(bool)));
     ports_->addPort(w);
     ++i;
     if (dialog_)
@@ -740,6 +741,7 @@ void ModuleWidget::createOutputPorts(const SCIRun::Dataflow::Networks::ModuleInf
       closestPortFinder_,
       port->getPortDataDescriber(),
       this);
+    connect(w, SIGNAL(highlighted(bool)), this, SLOT(updatePortSpacing(bool)));
     hookUpGeneralPortSignals(w);
     ports_->addPort(w);
     ++i;
@@ -764,7 +766,7 @@ void ModuleWidget::addOutputPortsToLayout(int index)
   {
     //TODO--extract method
     outputPortLayout_ = new QHBoxLayout;
-    outputPortLayout_->setSpacing(PORT_SPACING);
+    outputPortLayout_->setSpacing(SMALL_PORT_SPACING);
     outputPortLayout_->setAlignment(Qt::AlignLeft);
     addOutputPortsToWidget(index);
   }
@@ -775,7 +777,7 @@ void ModuleWidget::addOutputPortsToWidget(int index)
 {
   auto vbox = qobject_cast<QVBoxLayout*>(widget(index)->layout());
   if (vbox)
-    vbox->insertLayout(-1, outputPortLayout_, 1);
+    vbox->insertLayout(-1, outputPortLayout_, 10);
 }
 
 void ModuleWidget::removeOutputPortsFromWidget(int index)
@@ -792,6 +794,10 @@ void PortWidgetManager::addInputsToLayout(QHBoxLayout* layout)
 
   BOOST_FOREACH(PortWidget* port, inputPorts_)
     layout->addWidget(port);
+
+  layout->setSizeConstraint(QLayout::SetMinimumSize);
+  //qDebug() << "input port layout min size: " << layout->minimumSize();
+  //qDebug() << "input port layout max size: " << layout->maximumSize();
 }
 
 void PortWidgetManager::addOutputsToLayout(QHBoxLayout* layout)
@@ -801,6 +807,10 @@ void PortWidgetManager::addOutputsToLayout(QHBoxLayout* layout)
 
   BOOST_FOREACH(PortWidget* port, outputPorts_)
     layout->addWidget(port);
+
+  layout->setSizeConstraint(QLayout::SetMinimumSize);
+  //qDebug() << "output port layout min size: " << layout->minimumSize();
+  //qDebug() << "output port layout max size: " << layout->maximumSize();
 }
 
 void ModuleWidget::addInputPortsToLayout(int index)
@@ -808,7 +818,7 @@ void ModuleWidget::addInputPortsToLayout(int index)
   if (!inputPortLayout_)
   {
     inputPortLayout_ = new QHBoxLayout;
-    inputPortLayout_->setSpacing(PORT_SPACING);
+    inputPortLayout_->setSpacing(SMALL_PORT_SPACING);
     inputPortLayout_->setAlignment(Qt::AlignLeft);
     addInputPortsToWidget(index);
   }
@@ -1093,9 +1103,19 @@ void ModuleWidget::makeOptionsDialog()
         dockable_->setFloating(!Core::Preferences::Instance().modulesAreDockable);
       dockable_->hide();
       connect(dockable_, SIGNAL(visibilityChanged(bool)), this, SLOT(colorOptionsButton(bool)));
+      connect(dockable_, SIGNAL(topLevelChanged(bool)), this, SLOT(updateDockWidgetProperties(bool)));
 
       dialog_->pull();
     }
+  }
+}
+
+void ModuleWidget::updateDockWidgetProperties(bool isFloating)
+{
+  if (isFloating)
+  {
+    dockable_->setWindowFlags(Qt::Window);
+    dockable_->show();
   }
 }
 
@@ -1186,15 +1206,18 @@ void ModuleWidget::launchDocumentation()
   QUrl qurl(QString::fromStdString(url), QUrl::TolerantMode);
 
   if (!QDesktopServices::openUrl(qurl))
-    GuiLogger::Instance().log("Failed to open help page: " + qurl.toString());
+    GuiLogger::Instance().logError("Failed to open help page: " + qurl.toString());
 }
 
 void ModuleWidget::setStartupNote(const QString& text)
 {
-  auto note = getCurrentNote();
-  note.plainText_ = text;
-  note.html_ = "<p style=\"color:white\">" + text;
-  updateNoteFromFile(note);
+  if (isViewScene_ || Core::Preferences::Instance().autoNotes)
+  {
+    auto note = getCurrentNote();
+    note.plainText_ = text;
+    note.html_ = "<p style=\"color:white\">" + text;
+    updateNoteFromFile(note);
+  }
 }
 
 void ModuleWidget::createStartupNote()
@@ -1325,16 +1348,51 @@ void ModuleWidget::handleDialogFatalError(const QString& message)
 void ModuleWidget::highlightPorts()
 {
   ports_->setHighlightPorts(true);
-  inputPortLayout_->setSpacing(PORT_SPACING * 4);
-  outputPortLayout_->setSpacing(PORT_SPACING * 4);
+  setPortSpacing(true);
   Q_EMIT displayChanged();
+}
+
+void ModuleWidget::setPortSpacing(bool highlighted)
+{
+  int spacing = highlighted ? LARGE_PORT_SPACING : SMALL_PORT_SPACING;
+  inputPortLayout_->setSpacing(spacing);
+  outputPortLayout_->setSpacing(spacing);
+}
+
+void ModuleWidget::setInputPortSpacing(bool highlighted)
+{
+  int spacing = highlighted ? LARGE_PORT_SPACING : SMALL_PORT_SPACING;
+  inputPortLayout_->setSpacing(spacing);
+}
+
+void ModuleWidget::setOutputPortSpacing(bool highlighted)
+{
+  int spacing = highlighted ? LARGE_PORT_SPACING : SMALL_PORT_SPACING;
+  outputPortLayout_->setSpacing(spacing);
+}
+
+int ModuleWidget::portSpacing() const
+{
+  return inputPortLayout_->spacing();
+}
+
+void ModuleWidget::updatePortSpacing(bool highlighted)
+{
+  //qDebug() << "NEED TO UPDATE SPACING FOR " << sender();
+  auto port = qobject_cast<PortWidget*>(sender());
+  if (port)
+  {
+    if (port->isInput())
+      setInputPortSpacing(highlighted);
+    else
+      setOutputPortSpacing(highlighted);
+  }
 }
 
 void ModuleWidget::unhighlightPorts()
 {
   ports_->setHighlightPorts(false);
-  inputPortLayout_->setSpacing(PORT_SPACING);
-  outputPortLayout_->setSpacing(PORT_SPACING);
+  setPortSpacing(false);
   Q_EMIT displayChanged();
 }
 
