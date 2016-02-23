@@ -56,6 +56,7 @@ TARGET_LINK_LIBRARIES(Modules_Fields
   Algorithms_Field
   Core_Datatypes_Legacy_Field
   Graphics_Glyphs
+  Graphics_Widgets
   Graphics_Datatypes
   ${OPENGL_LIBRARIES}
   ${CPM_LIBRARIES}

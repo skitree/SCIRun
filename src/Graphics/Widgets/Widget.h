@@ -29,6 +29,7 @@ DEALINGS IN THE SOFTWARE.
 #ifndef Graphics_Graphics_Widgets_Widget_H
 #define Graphics_Graphics_Widgets_Widget_H
 
+#include <Graphics/Datatypes/GeometryImpl.h>
 #include <Graphics/Glyphs/share.h>
 
 namespace SCIRun {
@@ -38,6 +39,16 @@ namespace SCIRun {
     {
     public:
       Widget();
+
+      void CreateBoundingBox(Graphics::Datatypes::GeometryHandle geom, const Core::Geometry::Point& center, 
+        const Core::Geometry::Point& right, const Core::Geometry::Point& down, const Core::Geometry::Point& in, 
+        const double scale, const Core::Geometry::BBox& bbox);
+      
+      void CreateNode(Graphics::Datatypes::GeometryHandle geom, const Core::Geometry::Point& center, 
+        const double scale, const Core::Geometry::BBox& bbox);
+
+    private:
+      int num_strips_;
 
     };// class Widget
   }// Graphics

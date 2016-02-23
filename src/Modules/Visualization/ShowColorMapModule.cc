@@ -205,7 +205,7 @@ ShowColorMapModule::buildGeometryObject(ColorMapHandle cm, ModuleStateHandle sta
   //text
   char str2[128];
   std::stringstream sd;
-  sd << "%." << sigdig << "f";
+  sd << "%." << sigdig << "g";
   std::vector<Vector> txt_coords;
   double increment = 1. / static_cast<double>(numlabel - 1);
   double textSize = 5. * static_cast<double>(txtsize + 3);

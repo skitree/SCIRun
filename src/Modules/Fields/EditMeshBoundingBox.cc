@@ -31,6 +31,7 @@
 #include <Core/Datatypes/Legacy/Field/VMesh.h>
 #include <Core/Datatypes/DenseMatrix.h>
 #include <Graphics/Glyphs/GlyphGeom.h>
+#include <Graphics/Widgets/Widget.h>
 
 using namespace SCIRun;
 using namespace Modules::Fields;
@@ -285,68 +286,34 @@ bool EditMeshBoundingBox::isBoxEmpty() const
 }
 
 GeometryBaseHandle EditMeshBoundingBox::buildGeometryObject()
-{
-  ColorScheme colorScheme(COLOR_UNIFORM);
-  std::vector<std::pair<Point,Point>> bounding_edges;
+{ 
   //get all the bbox edges
   Point c,r,d,b;
   box_->getPosition(c,r,d,b);
-  Vector x = r - c, y = d - c, z = b - c;
-  std::vector<Point> points;
-  points.resize(8);
-  points.at(0) = c + x + y + z;
-  points.at(1) = c + x + y - z;
-  points.at(2) = c + x - y + z;
-  points.at(3) = c + x - y - z;
-  points.at(4) = c - x + y + z;
-  points.at(5) = c - x + y - z;
-  points.at(6) = c - x - y + z;
-  points.at(7) = c - x - y - z;
-  uint32_t point_indicies[] = {
-    0, 1, 0, 2, 0, 4,
-    7, 6, 7, 5, 3, 7,
-    4, 5, 4, 6, 1, 5,
-    3, 2, 3, 1, 2, 6
-  };
+ 
   auto state = get_state();
   double scale = state->getValue(Scale).toDouble();
-  int num_strips = 50;
-  std::vector<Vector> tri_points;
-  std::vector<Vector> tri_normals;
-  std::vector<uint32_t> tri_indices;
-  std::vector<ColorRGB> colors;
-  GlyphGeom glyphs;
-  //generate triangles for the cylinders.
-  for (int edge = 0; edge < 24; edge += 2)
-  {
-    glyphs.addCylinder(points[point_indicies[edge]], points[point_indicies[edge + 1]], scale, num_strips, ColorRGB(), ColorRGB());
-  }
-  //generate triangles for the spheres
+ 
+  GeometryHandle geom(new GeometryObjectSpire(*this, "BoundingBox"));
+  
+  Widget boundingBox;
+
+  boundingBox.CreateBoundingBox(geom, c, r, d, b, scale, bbox_);
+  
+  Vector x = r - c, y = d - c, z = b - c;
+  std::vector<Point> points;
+  points.resize(6);
+  points.at(0) = c - x;
+  points.at(1) = c + x;
+  points.at(2) = c - y;
+  points.at(3) = c + y;
+  points.at(4) = c - z;
+  points.at(5) = c + z;
+
   for (auto a : points)
   {
-    glyphs.addSphere(a, scale, num_strips, ColorRGB(1, 0, 0));
+    boundingBox.CreateNode(geom, a, scale, bbox_);
   }
-
-  std::stringstream ss;
-  ss << scale;
-  for (auto a : points) ss << a.x() << a.y() << a.z();
-
-  std::string uniqueNodeID = "bounding_box_cylinders" + std::string(ss.str().c_str());
-
-  RenderState renState;
-
-  renState.set(RenderState::IS_ON, true);
-  renState.set(RenderState::USE_TRANSPARENCY, false);
-
-  renState.defaultColor = ColorRGB(1, 1, 1);
-  renState.set(RenderState::USE_DEFAULT_COLOR, true);
-  renState.set(RenderState::USE_NORMALS, true);
-  renState.set(RenderState::IS_WIDGET, true);
-
-  GeometryHandle geom(new GeometryObjectSpire(*this, "BoundingBox"));
-
-  glyphs.buildObject(geom, uniqueNodeID, renState.get(RenderState::USE_TRANSPARENCY), 1.0,
-    colorScheme, renState, SpireIBO::TRIANGLES, bbox_);
 
   return geom;
 }
