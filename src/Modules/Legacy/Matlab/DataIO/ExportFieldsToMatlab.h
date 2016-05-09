@@ -33,24 +33,33 @@
 #include <Modules/Legacy/Matlab/DataIO/share.h>
 
 namespace SCIRun {
+
+  namespace Core
+  {
+    namespace Algorithms
+    {
+      namespace Matlab
+      {
+        ALGORITHM_PARAMETER_DECL(FieldNames);
+        ALGORITHM_PARAMETER_DECL(FieldFormats);
+      }
+    }
+  }
+
 namespace Modules {
 namespace Matlab {
 
-  class SCISHARE ExportFieldsToMatlab : public SCIRun::Dataflow::Networks::Module,
-    public Has7InputPorts<FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, StringPortTag>,
+  class SCISHARE ExportFieldsToMatlab : public Dataflow::Networks::Module,
+    public Has2InputPorts<DynamicPortTag<FieldPortTag>, StringPortTag>,
     public HasNoOutputPorts
   {
   public:
     ExportFieldsToMatlab();
     virtual void execute() override;
     virtual void setStateDefaults() override;
-    INPUT_PORT(0, Field1, LegacyField);
-    INPUT_PORT(1, Field2, LegacyField);
-    INPUT_PORT(2, Field3, LegacyField);
-    INPUT_PORT(3, Field4, LegacyField);
-    INPUT_PORT(4, Field5, LegacyField);
-    INPUT_PORT(5, Field6, LegacyField);
-    INPUT_PORT(6, Filename, String);
+    INPUT_PORT_DYNAMIC(0, InputField, LegacyField);
+    INPUT_PORT(1, Filename, String);
+    virtual bool hasDynamicPorts() const override { return true; }
 
     static const Dataflow::Networks::ModuleLookupInfo staticInfo_;
   };

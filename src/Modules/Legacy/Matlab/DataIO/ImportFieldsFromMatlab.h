@@ -33,10 +33,22 @@
 #include <Modules/Legacy/Matlab/DataIO/share.h>
 
 namespace SCIRun {
+  namespace Core
+  {
+    namespace Algorithms
+    {
+      namespace Matlab
+      {
+        ALGORITHM_PARAMETER_DECL(FieldInfoStrings);
+        ALGORITHM_PARAMETER_DECL(PortChoices);
+      }
+    }
+  }
+
 namespace Modules {
 namespace Matlab {
 
-  class SCISHARE ImportFieldsFromMatlab : public SCIRun::Dataflow::Networks::Module,
+  class SCISHARE ImportFieldsFromMatlab : public Dataflow::Networks::Module,
     public Has1InputPort<StringPortTag>,
     public Has7OutputPorts<FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, FieldPortTag, StringPortTag>
   {
@@ -52,8 +64,11 @@ namespace Matlab {
     OUTPUT_PORT(4, Field5, LegacyField);
     OUTPUT_PORT(5, Field6, LegacyField);
     OUTPUT_PORT(6, FilenameOut, String);
+    enum { NUMPORTS = 6 };
 
     static const Dataflow::Networks::ModuleLookupInfo staticInfo_;
+  private:
+    void indexmatlabfile();
   };
 }}}
 

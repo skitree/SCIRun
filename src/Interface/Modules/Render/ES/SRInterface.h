@@ -42,7 +42,7 @@
 // CPM Modules
 #include <es-render/util/Shader.hpp>
 #include <es-render/comp/CommonUniforms.hpp>
-
+#include "comp/StaticClippingPlanes.h"
 #include <Graphics/Datatypes/GeometryImpl.h>
 #include <Interface/Modules/Render/share.h>
 
@@ -88,6 +88,26 @@ namespace SCIRun {
       {
         MOUSE_OLDSCIRUN,
         MOUSE_NEWSCIRUN
+      };
+
+      enum MatFactor
+      {
+        MAT_AMBIENT,
+        MAT_DIFFUSE,
+        MAT_SPECULAR,
+        MAT_SHINE
+      };
+
+      enum FogFactor
+      {
+        FOG_INTENSITY,
+        FOG_START,
+        FOG_END
+      };
+
+      struct ClippingPlane {
+        bool visible, showFrame, reverseNormal;
+        double x, y, z, d;
       };
 
       void inputMouseDown(const glm::ivec2& pos, MouseButton btn);
@@ -166,6 +186,25 @@ namespace SCIRun {
       void setClippingPlaneZ(double value);
       void setClippingPlaneD(double value);
 
+      //set material factors
+      void setMaterialFactor(MatFactor factor, double value);
+
+      //set fog
+      void setFog(FogFactor factor, double value);
+      void setFogColor(const glm::vec4 &color);
+
+      //camera matrices
+      const glm::mat4& getWorldToProjection() const;
+      const glm::mat4& getWorldToView() const;
+      const glm::mat4& getViewToWorld() const;
+      const glm::mat4& getViewToProjection() const;
+
+      //clipping planes
+      StaticClippingPlanes* getClippingPlanes();
+
+      //get scenenox
+      Core::Geometry::BBox getSceneBox();
+
     private:
 
       class DepthIndex {
@@ -233,11 +272,6 @@ namespace SCIRun {
         int										          mPort;
       };
 
-      struct ClippingPlane {
-        bool visible, showFrame, reverseNormal;
-        double x, y, z, d;
-      };
-
       // Sets up ESCore.
       void setupCore();
 
@@ -248,6 +282,7 @@ namespace SCIRun {
       void updateWorldLight();
 
       //update the clipping planes
+      double getMaxProjLength(const glm::vec3 &n);
       void updateClippingPlanes();
 
       // Renders coordinate axes on the screen.
@@ -279,6 +314,12 @@ namespace SCIRun {
 
       // Apply uniform.
       void applyUniform(uint64_t entityID, const Graphics::Datatypes::SpireSubPass::Uniform& uniform);
+
+      //apply material factors
+      void applyMatFactors(Graphics::Datatypes::SpireSubPass::Uniform& uniform);
+
+      //apply fog
+      void applyFog(Graphics::Datatypes::SpireSubPass::Uniform& uniform);
 
       // search for a widget at mouse position
       bool foundWidget(const glm::ivec2& pos);
@@ -316,7 +357,7 @@ namespace SCIRun {
 
       ESCore                            mCore;            ///< Entity system core.
 
-
+      //Modules::Visualization::TextBuilder mTextBuilder;   /// text builder
       std::string                       mArrowVBOName;    ///< VBO for one axis of the coordinate axes.
       std::string                       mArrowIBOName;    ///< IBO for one axis of the coordinate axes.
       std::string                       mArrowObjectName; ///< Object name for profile arrow.
@@ -330,8 +371,17 @@ namespace SCIRun {
       const int frameInitLimit_;
       std::unique_ptr<SRCamera>         mCamera;          ///< Primary camera.
 
-      static std::string mFSRoot;/// file system root
-      static std::string mFSSeparator;/// file system seperator
+      //material settings
+      double                            mMatAmbient;
+      double                            mMatDiffuse;
+      double                            mMatSpecular;
+      double                            mMatShine;
+
+      //fog settings
+      double                            mFogIntensity;
+      double                            mFogStart;
+      double                            mFogEnd;
+      glm::vec4                         mFogColor;
     };
 
   } // namespace Render

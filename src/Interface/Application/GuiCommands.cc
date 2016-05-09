@@ -63,10 +63,15 @@ bool LoadFileCommandGui::execute()
 {
   std::string inputFile;
   auto inputFilesFromCommandLine = Application::Instance().parameters()->inputFiles();
+
   if (!inputFilesFromCommandLine.empty())
     inputFile = inputFilesFromCommandLine[index_];
   else
+  {
     inputFile = get(Variables::Filename).toFilename().string();
+    if (mostRecentFileCode() == inputFile)
+      inputFile = SCIRunMainWindow::Instance()->mostRecentFile().toStdString();
+  }
 
   return SCIRunMainWindow::Instance()->loadNetworkFile(QString::fromStdString(inputFile));
 }
@@ -77,14 +82,30 @@ bool ExecuteCurrentNetworkCommandGui::execute()
   return true;
 }
 
+static const AlgorithmParameterName RunningPython("RunningPython");
+
+QuitAfterExecuteCommandGui::QuitAfterExecuteCommandGui()
+{
+  addParameter(RunningPython, false);
+}
+
 bool QuitAfterExecuteCommandGui::execute()
 {
+  if (get(RunningPython).toBool())
+    SCIRunMainWindow::Instance()->skipSaveCheck();
   SCIRunMainWindow::Instance()->setupQuitAfterExecute();
   return true;
 }
 
+QuitCommandGui::QuitCommandGui()
+{
+  addParameter(RunningPython, false);
+}
+
 bool QuitCommandGui::execute()
 {
+  if (get(RunningPython).toBool())
+    SCIRunMainWindow::Instance()->skipSaveCheck();
   SCIRunMainWindow::Instance()->quit();
   exit(0);
   return true;
@@ -118,7 +139,7 @@ bool ShowSplashScreenGui::execute()
 
 void ShowSplashScreenGui::initSplashScreen()
 {
-  splash_ = new QSplashScreen(0, QPixmap(":/general/Resources/scirun_5_0_alpha.png"), Qt::WindowStaysOnTopHint);
+  splash_ = new QSplashScreen(nullptr, QPixmap(":/general/Resources/scirun_5_0_alpha.png"), Qt::WindowStaysOnTopHint);
   splashTimer_ = new QTimer;
   splashTimer_->setSingleShot( true );
   splashTimer_->setInterval( 5000 );
@@ -148,6 +169,16 @@ QPointF SCIRun::Gui::findCenterOfNetwork(const ModulePositions& positions)
 {
   auto pointRange = positions.modulePositions | boost::adaptors::map_values;
   return centroidOfPointRange(pointRange.begin(), pointRange.end());
+}
+
+const char* SCIRun::Gui::addNewModuleActionTypePropertyName()
+{
+  return "connectNewModuleSource";
+}
+
+const char* SCIRun::Gui::insertNewModuleActionTypePropertyName()
+{
+  return "inputPortToConnectPid";
 }
 
 namespace std

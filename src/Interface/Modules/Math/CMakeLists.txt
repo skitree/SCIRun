@@ -30,12 +30,15 @@
 SET(Interface_Modules_Math_FORMS
   SelectSubMatrix.ui
   AppendMatrix.ui
+  CreateGeometricTransform.ui
   CreateMatrix.ui
+  CreateComplexMatrix.ui
   EvaluateLinearAlgebraBinary.ui
   EvaluateLinearAlgebraGeneral.ui
   EvaluateLinearAlgebraUnary.ui
   GetMatrixSlice.ui
   ReportMatrixInfo.ui
+  ReportComplexMatrixInfo.ui
   SolveLinearSystem.ui
   ConvertMatrixType.ui
   BuildNoiseColumnMatrix.ui
@@ -48,12 +51,15 @@ SET(Interface_Modules_Math_FORMS
 SET(Interface_Modules_Math_HEADERS
   SelectSubMatrixDialog.h
   AppendMatrixDialog.h
+  CreateGeometricTransformDialog.h
   CreateMatrixDialog.h
+  CreateComplexMatrixDialog.h
   EvaluateLinearAlgebraBinaryDialog.h
   EvaluateLinearAlgebraGeneralDialog.h
   EvaluateLinearAlgebraUnaryDialog.h
   GetMatrixSliceDialog.h
   ReportMatrixInfoDialog.h
+  ReportComplexMatrixInfoDialog.h
   share.h
   SolveLinearSystemDialog.h
   ConvertMatrixTypeDialog.h
@@ -73,12 +79,15 @@ ENDIF()
 SET(Interface_Modules_Math_SOURCES
   SelectSubMatrixDialog.cc
   AppendMatrixDialog.cc
+  CreateGeometricTransformDialog.cc
   CreateMatrixDialog.cc
+  CreateComplexMatrixDialog.cc
   EvaluateLinearAlgebraBinaryDialog.cc
   EvaluateLinearAlgebraGeneralDialog.cc
   EvaluateLinearAlgebraUnaryDialog.cc
   GetMatrixSliceDialog.cc
   ReportMatrixInfoDialog.cc
+  ReportComplexMatrixInfoDialog.cc
   SolveLinearSystemDialog.cc
   ConvertMatrixTypeDialog.cc
   BuildNoiseColumnMatrixDialog.cc

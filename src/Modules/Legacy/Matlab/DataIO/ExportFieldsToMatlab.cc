@@ -37,382 +37,205 @@
 #include <Core/Matlab/matlabfile.h>
 #include <Core/Matlab/matlabarray.h>
 #include <Core/Matlab/matlabconverter.h>
+#include <Core/Algorithms/Base/AlgorithmVariableNames.h>
+#include <boost/filesystem/operations.hpp>
+#include <Core/Utils/StringUtil.h>
 
-//#include <Core/Util/FullFileName.h>
 using namespace SCIRun::Modules::Matlab;
+using namespace SCIRun::MatlabIO;
+using namespace SCIRun::Core;
 using namespace SCIRun::Core::Datatypes;
 using namespace SCIRun::Dataflow::Networks;
-using namespace SCIRun::Core;
 using namespace SCIRun::Core::Algorithms;
+using namespace SCIRun::Core::Algorithms::Matlab;
+
+ALGORITHM_PARAMETER_DEF(Matlab, FieldNames);
+ALGORITHM_PARAMETER_DEF(Matlab, FieldFormats);
 
 const ModuleLookupInfo ExportFieldsToMatlab::staticInfo_("ExportFieldsToMatlab", "Matlab", "SCIRun");
 
 ExportFieldsToMatlab::ExportFieldsToMatlab() : Module(staticInfo_)
 {
-  INITIALIZE_PORT(Field1);
-  INITIALIZE_PORT(Field2);
-  INITIALIZE_PORT(Field3);
-  INITIALIZE_PORT(Field4);
-  INITIALIZE_PORT(Field5);
-  INITIALIZE_PORT(Field6);
+  INITIALIZE_PORT(InputField);
   INITIALIZE_PORT(Filename);
 }
 
 void ExportFieldsToMatlab::setStateDefaults()
 {
-  //TODO
 }
 
 void ExportFieldsToMatlab::execute()
 {
-  //TODO
-}
+  auto filenameInputOption = getOptionalInput(Filename);
+  auto fields = getRequiredDynamicInputs(InputField);
 
-#if 0
-namespace MatlabIO {
-
-using namespace SCIRun;
-
-class ExportFieldsToMatlab : public Module
-{
-
-  public:
-
-    // Constructor
-    ExportFieldsToMatlab(GuiContext*);
-
-    // Destructor
-    virtual ~ExportFieldsToMatlab();
-
-    // Std functions for each module
-    // execute():
-    //   Execute the module and put data on the output port
-
-    virtual void execute();
-
-  private:
-
-    // Support functions for converting between TCL and C++
-    // converttcllist:
-    // TCL lists are stings in which the elements are separated by {}.
-    // In a C++ environment it is easier to have them as a STL vector
-    // object. This function converts the TCL list into an STL object
-    // convertdataformat:
-    // In TCL the dataformat is a string this function is used to convert
-    // it into its matlab enum counterpart.
-    std::vector<std::string> converttcllist(std::string str);
-    matlabarray::mitype convertdataformat(std::string dataformat);
-
-    // Support functions for the GUI
-    // displayerror:
-    // Directly reporting an error to the user (not in the error log)
-    // overwrite:
-    // Ask for confirmation to overwrite the file if it already exists
-
-    void displayerror(std::string str);
-    bool overwrite();
-
-  private:
-
-    enum { NUMPORTS = 6};
-
-    // GUI variables
-    GuiFilename guifilename_;     // .mat filename (import from GUI)
-    GuiString   guifilenameset_;
-    GuiString   guimatrixname_;   // A list of the matrix names
-    GuiString   guimatrixformat_; // A list of the matlabarray format (numeric array, structured array)
-    GuiInt      guioverwrite_;    // Overwrite matlab file
-};
-
-// Constructor:
-// Initialise all the variables shared between TCL and SCIRun
-// matrixname contains a list of matrix names.
-// dataformat contains a list of the format of each matrix (int32,single,double, etc...)
-// matrixformat contains a list of the way the object is represented in matlab
-// e.g. as a structured object or an object with the dataarray only
-
-ExportFieldsToMatlab::ExportFieldsToMatlab(GuiContext* ctx)
-  : Module("ExportFieldsToMatlab", ctx, Sink, "DataIO", "MatlabInterface"),
-    guifilename_(get_ctx()->subVar("filename")),
-    guifilenameset_(get_ctx()->subVar("filename-set", false)),
-    guimatrixname_(get_ctx()->subVar("matrixname")),
-    guimatrixformat_(get_ctx()->subVar("matrixformat")),
-    guioverwrite_(get_ctx()->subVar("overwrite"), 1)
-{
-}
-
-void ExportFieldsToMatlab::execute()
-{
-  matlabconverter translate(dynamic_cast<SCIRun::ProgressReporter*>(this));
-
-	StringHandle stringH;
-	get_input_handle("Filename",stringH,false);
-	if (stringH.get_rep())
-	{
-		std::string filename = stringH->get();
-		guifilename_.set(filename);
-		get_ctx()->reset();
-	}
-
-  bool porthasdata[NUMPORTS];
-  SCIRun::FieldHandle matrixhandle[NUMPORTS];
-
-  for (int p=0; p<NUMPORTS; p++)
+  //TODO: buggy with dynamic ports and same values
+  //if (needToExecute())
   {
-		porthasdata[p] = get_input_handle(p,matrixhandle[p],false);
-  }
+    auto state = get_state();
 
-  // Reorder the TCL input and put them
-  // in orderly STL style vectors.
-
-  // First update the GUI to C++ interface
-  TCLInterface::execute(get_id()+" Synchronise");
-  get_ctx()->reset();
-
-  // Get the contents of the filename entrybox
-  std::string filename = guifilename_.get();
-
-  // If the filename is empty, launch an error
-  if (filename.empty())
-  {
-    error("ExportDatatypesToMatlab: No file name was specified");
-    return;
-  }
-
-  // Make sure we have a .mat extension
-  int filenamesize = filename.size();
-  if (filenamesize < 4)
-  {
-    filename += ".mat";
-  }
-  else
-  {
-    if (filename.substr(filenamesize-4,filenamesize) != ".mat") filename += ".mat";
-  }
-
-	// Make sure the path to the new file exists
-	// If not make it and as well convert filename
-	// to absolute path name
-	FullFileName ffn(filename);
-	if (!(ffn.create_file_path()))
-	{
-		error("Could not generate path to file");
-		return;
-	}
-	filename = ffn.get_abs_filename();
-	guifilename_.set(filename);
-	get_ctx()->reset();
-
-  if (!overwrite()) return;
-
-  update_state(Executing);
-
-  // get all the settings from the GUI
-
-  std::vector<std::string> matrixname = converttcllist(guimatrixname_.get());
-  std::vector<std::string> matrixformat = converttcllist(guimatrixformat_.get());
-
-  // Check the validity of the matrixnames
-
-  for (int p=0;p<static_cast<int>(matrixname.size());p++)
-  {
-    if (porthasdata[p] == false) continue; // Do not check not used ports
-    if (!translate.isvalidmatrixname(matrixname[p]))
+    if (filenameInputOption && *filenameInputOption)
     {
-      error("ExportFieldsToMatlab: The matrix name specified is invalid");
+      auto filename = (*filenameInputOption)->value();
+      state->setValue(Variables::Filename, filename);
+    }
+
+
+    auto filename = state->getValue(Variables::Filename).toFilename();
+
+    if (filename.empty())
+    {
+      error("ExportDatatypesToMatlab: No file name was specified");
       return;
     }
-    for (int q=0;q<p;q++)
+
+    // Make sure we have a .mat extension
+    if (filename.extension() != ".mat")
+      filename += ".mat";
+
+#ifdef SCIRUN4_CODE_TO_BE_ENABLED_LATER
+    // Make sure the path to the new file exists
+    // If not make it and as well convert filename
+    // to absolute path name
+    if (!exists(filename))
     {
-      if (porthasdata[q] == false) continue;
-      if (matrixname[q] == matrixname[p])
+      error("Could not generate path to file");
+      return;
+    }
+    //filename = filename.get_abs_filename();
+    //guifilename_.set(filename);
+    //get_ctx()->reset();
+
+
+    if (!overwrite()) return;
+#endif
+
+    update_state(Executing);
+
+    std::vector<std::string> fieldnames;
+
+    auto iPorts = inputPorts();
+    if (fields.size() != iPorts.size() - 2)
+      warning("Problem in state of dynamic ports");
+    auto fieldPortNameIterator = iPorts.begin();
+
+    for (int i = 0; i < fields.size(); ++i)
+    {
+      fieldnames.push_back(state->getValue(Name((*fieldPortNameIterator++)->id().toString())).toString());
+    }
+
+    auto fieldformats = toStringVector(state->getValue(Parameters::FieldFormats).toVector());
+
+    // Check the validity of the matrixnames
+    matlabconverter translate(getLogger());
+
+    for (size_t p = 0; p < fieldnames.size(); ++p)
+    {
+      if (!translate.isvalidmatrixname(fieldnames[p]))
       {
-        error("ExportFieldsToMatlab: A matrix name is used twice");
+        error("ExportFieldsToMatlab: The matrix name specified is invalid");
         return;
       }
+      for (auto q = 0; q < p; ++q)
+      {
+        if (fieldnames[q] == fieldnames[p])
+        {
+          error("ExportFieldsToMatlab: A matrix name is used twice");
+          return;
+        }
+      }
     }
-  }
 
-  try
-  {
-    matlabfile mfile;   // matlab file object contains all function for reading and writing matlab arrayd
-    matlabarray ma;		// matlab style formatted array (can be stored in a matlabfile object)
-    mfile.open(filename,"w");   // open file for writing
-
-    // Add an information tag to the data, so the origin of the file is known
-    // There are 116 bytes of free data storage at the header of the file.
-    // Do not start the file with 'SCI ', otherwise the file looks like a
-    // native SCIRun file which uses the same extension.
-
-    mfile.setheadertext("Matlab V5 compatible file generated by SCIRun [module ExportFieldsToMatlab version 1.1]");
-
-    for (int p=0;p<NUMPORTS;p++)
+    try
     {
-      if (porthasdata[p] == false) continue; // if the port is not connected skip to the next one
+      matlabfile mfile;   // matlab file object contains all function for reading and writing matlab arrayd
+      matlabarray ma;		// matlab style formatted array (can be stored in a matlabfile object)
+      mfile.open(filename.string(),"w");   // open file for writing
 
-      // Convert the SCIRun matrixobject to a matlab object
+      // Add an information tag to the data, so the origin of the file is known
+      // There are 116 bytes of free data storage at the header of the file.
+      // Do not start the file with 'SCI ', otherwise the file looks like a
+      // native SCIRun file which uses the same extension.
 
-      if (matrixformat[p] == "struct array")
+      mfile.setheadertext("Matlab V5 compatible file generated by SCIRun [module ExportFieldsToMatlab version 1.1]");
+
+      for (auto&& tup : zip(fields, fieldnames, fieldformats))
       {
-        // translate the matrix into a matlab structured array, which
-        // can also store some data from the property manager
-        translate.converttostructmatrix();
+        FieldHandle field;
+        std::string name, format;
+        boost::tie(field, name, format) = tup;
+        // Convert the SCIRun matrixobject to a matlab object
+        if (format == "struct array")
+        {
+          // translate the matrix into a matlab structured array, which
+          // can also store some data from the property manager
+          translate.converttostructmatrix();
+        }
+
+        if (format == "numeric array")
+        {
+          // only store the numeric parts of the data
+          translate.converttonumericmatrix();
+        }
+
+        translate.sciFieldTOmlArray(field, ma);
+
+        if (ma.isempty())
+        {
+          warning("One of the matrices is empty");
+          continue; // Do not write empty matrices
+        }
+        // Every thing seems OK, so proceed and store the matrix in the file
+        mfile.putmatlabarray(ma, name);
       }
 
-      if (matrixformat[p] == "numeric array")
-      {
-        // only store the numeric parts of the data
-        translate.converttonumericmatrix();
-      }
-
-      translate.sciFieldTOmlArray(matrixhandle[p],ma);
-
-      if (ma.isempty())
-      {
-        warning("One of the matrices is empty");
-        continue; // Do not write empty matrices
-      }
-      // Every thing seems OK, so proceed and store the matrix in the file
-      mfile.putmatlabarray(ma,matrixname[p]);
+      mfile.close();
     }
-
-    mfile.close();
-  }
-
-  // in case something went wrong
-
-  catch (matlabconverter::matlabconverter_error)
-  {
+    catch (matlabconverter::error_type&)
+    {
       error("ExportFieldsToMatlab: Error in the SCIRun to Matlab converter");
+    }
+    catch (matlabfile::could_not_open_file&)
+    {
+      error("ExportFieldsToMatlab: Could not open file");
+    }
+    catch (matlabfile::invalid_file_format&)
+    {
+      error("ExportFieldsToMatlab: Invalid file format");
+    }
+    catch (matlabfile::io_error&)
+    {   // IO error from ferror
+      error("ExportFieldsToMatlab: IO error");
+    }
+    catch (matlabfile::unknown_type&)
+    {
+      error("ExportFieldsToMatlab: Unknow type encountered");
+    }
+    catch (matlabfile::empty_matlabarray&)
+    {
+      error("ExportFieldsToMatlab: Empty Matlab array encountered");
+    }
+    catch (matlabfile::out_of_range&)
+    {
+      error("ExportFieldsToMatlab: Out of Range error");
+    }
+    catch (matlabfile::invalid_file_access&)
+    {
+      error("ExportFieldsToMatlab: Invalid file access");
+    }
+    catch (matlabfile::compression_error&)
+    {
+      error("ExportFieldsToMatlab: Compression error");
+    }
+    catch (matlabfile::internal_error&)
+    {
+      error("ExportFieldsToMatlab: Internal error");
+    }
+    catch (matlabfile::matfileerror&)
+    {   // All other errors are classified as internal
+      // matfileerrror is the base class on which all
+      // other exceptions are based.
+      error("ExportFieldsToMatlab: Matlab file writer error");
+    }
   }
-  catch (matlabfile::could_not_open_file)
-  {
-    error("ExportFieldsToMatlab: Could not open file");
-  }
-  catch (matlabfile::invalid_file_format)
-  {
-    error("ExportFieldsToMatlab: Invalid file format");
-  }
-  catch (matlabfile::io_error)
-  {   // IO error from ferror
-    error("ExportFieldsToMatlab: IO error");
-  }
-  catch (matlabfile::unknown_type)
-  {
-    error("ExportFieldsToMatlab: Unknow type encountered");
-  }
-  catch (matlabfile::empty_matlabarray)
-  {
-    error("ExportFieldsToMatlab: Empty Matlab array encountered");
-  }
-  catch (matlabfile::out_of_range)
-  {
-    error("ExportFieldsToMatlab: Out of Range error");
-  }
-  catch (matlabfile::invalid_file_access)
-  {
-    error("ExportFieldsToMatlab: Invalid file access");
-  }
-  catch (matlabfile::compression_error)
-  {
-    error("ExportFieldsToMatlab: Compression error");
-  }
-  catch (matlabfile::internal_error)
-  {
-    error("ExportFieldsToMatlab: Internal error");
-  }
-  catch (matlabfile::matfileerror)
-  {   // All other errors are classified as internal
-    // matfileerrror is the base class on which all
-    // other exceptions are based.
-    error("ExportFieldsToMatlab: Matlab file writer error");
-  }
-  // No handling of the SCIRun errors here yet, most SCIRun functions used
-  // do not use exceptions yet.
 }
-
-// Additional support functions :
-// To help coordinate between the GUI in TCL and
-// the functions in this module on the C++ site.
-// Some of the following functions are TCL specific!
-
-// convertdataformat
-// Convert the string TCL returns into a matlabarray::mitype
-
-matlabarray::mitype ExportFieldsToMatlab::convertdataformat(std::string dataformat)
-{
-  matlabarray::mitype type = matlabarray::miUNKNOWN;
-  if (dataformat == "same as data")  { type = matlabarray::miSAMEASDATA; }
-  else if (dataformat == "double")   { type = matlabarray::miDOUBLE; }
-  else if (dataformat == "single")   { type = matlabarray::miSINGLE; }
-  else if (dataformat == "uint64")   { type = matlabarray::miUINT64; }
-  else if (dataformat == "int64")    { type = matlabarray::miINT64; }
-  else if (dataformat == "uint32")   { type = matlabarray::miUINT32; }
-  else if (dataformat == "int32")    { type = matlabarray::miINT32; }
-  else if (dataformat == "uint16")   { type = matlabarray::miUINT16; }
-  else if (dataformat == "int16")    { type = matlabarray::miINT16; }
-  else if (dataformat == "uint8")    { type = matlabarray::miUINT8; }
-  else if (dataformat == "int8")     { type = matlabarray::miINT8; }
-  return (type);
-}
-
-// converttcllist:
-// converts a TCL formatted list into a STL array
-// of strings
-
-std::vector<std::string> ExportFieldsToMatlab::converttcllist(std::string str)
-{
-  std::string result;
-  std::vector<std::string> list(0);
-  int lengthlist = 0;
-
-  // Yeah, it is TCL dependent:
-  // TCL::llength determines the length of the list
-  TCLInterface::eval("llength { "+str + " }",result);
-  std::istringstream iss(result);
-  iss >> lengthlist;
-  if (lengthlist < 0) return(list);
-
-  list.resize(lengthlist);
-  for (int p = 0;p<lengthlist;p++)
-  {
-    std::ostringstream oss;
-    // TCL dependency:
-    // TCL::lindex retrieves the p th element from the list
-    oss << "lindex { " << str <<  " } " << p;
-    TCLInterface::eval(oss.str(),result);
-    list[p] = result;
-  }
-  return(list);
-}
-
-// overwrite:
-// Ask the user whether the file should be overwritten
-
-bool ExportFieldsToMatlab::overwrite()
-{
-  std::string result;
-  // call overwrite Tcl function
-  TCLInterface::eval(get_id()+" overwrite",result);
-  if (result == std::string("0"))
-  {
-    warning("User chose to not save.");
-    return false;
-  }
-  return true;
-}
-
-// displayerror:
-// This function should be replaced with a more
-// general function in SCIRun for displaying errors
-
-void ExportFieldsToMatlab::displayerror(std::string str)
-{
-  // Explicit call to TCL
-  TCLInterface::execute("tk_messageBox -icon error -type ok -title {ERROR} -message {" + str + "}");
-}
-
-
-} // End namespace MatlabInterface
-
-#endif

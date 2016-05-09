@@ -33,6 +33,7 @@
 #include <Dataflow/State/SimpleMapModuleState.h>
 #include <Dataflow/Engine/Scheduler/DesktopExecutionStrategyFactory.h>
 #include <Core/Python/PythonInterpreter.h>
+#include <boost/filesystem.hpp>
 
 using namespace SCIRun;
 using namespace Core;
@@ -51,7 +52,7 @@ class PythonControllerFunctionalTests : public ModuleTest
 public:
   PythonControllerFunctionalTests()
   {
-    PythonInterpreter::Instance().initialize(false, "", "");
+    PythonInterpreter::Instance().initialize(false, "Engine_Python_Tests", boost::filesystem::current_path().string());
     PythonInterpreter::Instance().run_string("import SCIRunPythonAPI; from SCIRunPythonAPI import *");
   }
 };
@@ -59,7 +60,7 @@ public:
 TEST_F(PythonControllerFunctionalTests, CanAddModule)
 {
   ModuleFactoryHandle mf(new HardCodedModuleFactory);
-  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr);
+  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
   initModuleParameters(false);
 
   ASSERT_EQ(0, controller.getNetwork()->nmodules());
@@ -75,7 +76,7 @@ TEST_F(PythonControllerFunctionalTests, CanAddModule)
 TEST_F(PythonControllerFunctionalTests, CanAddMultipleModule)
 {
   ModuleFactoryHandle mf(new HardCodedModuleFactory);
-  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr);
+  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
   initModuleParameters(false);
 
   ASSERT_EQ(0, controller.getNetwork()->nmodules());
@@ -91,7 +92,7 @@ TEST_F(PythonControllerFunctionalTests, CanChangeModuleState)
 {
   ModuleFactoryHandle mf(new HardCodedModuleFactory);
   ModuleStateFactoryHandle sf(new SimpleMapModuleStateFactory);
-  NetworkEditorController controller(mf, sf, nullptr, nullptr, nullptr, nullptr);
+  NetworkEditorController controller(mf, sf, nullptr, nullptr, nullptr, nullptr, nullptr);
   initModuleParameters(false);
 
   ASSERT_EQ(0, controller.getNetwork()->nmodules());
@@ -111,7 +112,7 @@ TEST_F(PythonControllerFunctionalTests, CanChangeModuleState)
 TEST_F(PythonControllerFunctionalTests, CanConnectModules)
 {
   ModuleFactoryHandle mf(new HardCodedModuleFactory);
-  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr);
+  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
   initModuleParameters(false);
 
   ASSERT_EQ(0, controller.getNetwork()->nmodules());
@@ -133,7 +134,7 @@ TEST_F(PythonControllerFunctionalTests, DISABLED_CanExecuteNetwork)
   ModuleFactoryHandle mf(new HardCodedModuleFactory);
   ModuleStateFactoryHandle sf(new SimpleMapModuleStateFactory);
   ExecutionStrategyFactoryHandle exe(new DesktopExecutionStrategyFactory(boost::none));
-  NetworkEditorController controller(mf, sf, exe, nullptr, nullptr, nullptr);
+  NetworkEditorController controller(mf, sf, exe, nullptr, nullptr, nullptr, nullptr);
   initModuleParameters(false);
 
   PythonInterpreter::Instance().run_string("m1 = scirun_add_module(\"CreateLatVol\")");
@@ -149,7 +150,7 @@ TEST_F(PythonControllerFunctionalTests, DISABLED_CanExecuteNetwork)
 TEST_F(PythonControllerFunctionalTests, CanAddModuleWithStaticFunction)
 {
   ModuleFactoryHandle mf(new HardCodedModuleFactory);
-  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr);
+  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
   initModuleParameters(false);
 
   ASSERT_EQ(0, controller.getNetwork()->nmodules());
@@ -165,7 +166,7 @@ TEST_F(PythonControllerFunctionalTests, CanAddModuleWithStaticFunction)
 TEST_F(PythonControllerFunctionalTests, CanAddMultipleModulesWithStaticFunction)
 {
   ModuleFactoryHandle mf(new HardCodedModuleFactory);
-  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr);
+  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
   initModuleParameters(false);
 
   ASSERT_EQ(0, controller.getNetwork()->nmodules());
@@ -181,7 +182,7 @@ TEST_F(PythonControllerFunctionalTests, CanGetModuleStateWithStaticFunction)
 {
   ModuleFactoryHandle mf(new HardCodedModuleFactory);
   ModuleStateFactoryHandle sf(new SimpleMapModuleStateFactory);
-  NetworkEditorController controller(mf, sf, nullptr, nullptr, nullptr, nullptr);
+  NetworkEditorController controller(mf, sf, nullptr, nullptr, nullptr, nullptr, nullptr);
   initModuleParameters(false);
 
   ASSERT_EQ(0, controller.getNetwork()->nmodules());
@@ -203,7 +204,7 @@ TEST_F(PythonControllerFunctionalTests, CanChangeModuleStateWithStaticFunction)
 {
   ModuleFactoryHandle mf(new HardCodedModuleFactory);
   ModuleStateFactoryHandle sf(new SimpleMapModuleStateFactory);
-  NetworkEditorController controller(mf, sf, nullptr, nullptr, nullptr, nullptr);
+  NetworkEditorController controller(mf, sf, nullptr, nullptr, nullptr, nullptr, nullptr);
   initModuleParameters(false);
 
   ASSERT_EQ(0, controller.getNetwork()->nmodules());
@@ -224,7 +225,7 @@ TEST_F(PythonControllerFunctionalTests, CanChangeModuleStateWithStaticFunction)
 TEST_F(PythonControllerFunctionalTests, CanConnectModulesWithStaticFunction)
 {
   ModuleFactoryHandle mf(new HardCodedModuleFactory);
-  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr);
+  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
   initModuleParameters(false);
 
   ASSERT_EQ(0, controller.getNetwork()->nmodules());
@@ -243,7 +244,7 @@ TEST_F(PythonControllerFunctionalTests, CanConnectModulesWithStaticFunction)
 TEST_F(PythonControllerFunctionalTests, CanDisconnectModulesWithStaticFunction)
 {
   ModuleFactoryHandle mf(new HardCodedModuleFactory);
-  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr);
+  NetworkEditorController controller(mf, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
   initModuleParameters(false);
 
   ASSERT_EQ(0, controller.getNetwork()->nmodules());

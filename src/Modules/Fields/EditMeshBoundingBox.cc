@@ -31,6 +31,7 @@
 #include <Core/Datatypes/Legacy/Field/VMesh.h>
 #include <Core/Datatypes/DenseMatrix.h>
 #include <Graphics/Glyphs/GlyphGeom.h>
+#include <Core/Datatypes/Color.h>
 #include <Graphics/Widgets/Widget.h>
 
 using namespace SCIRun;
@@ -165,12 +166,11 @@ EditMeshBoundingBox::EditMeshBoundingBox()
   INITIALIZE_PORT(Transformation_Matrix);
 }
 
-void EditMeshBoundingBox::processWidgetFeedback(ModuleFeedback var)
+void EditMeshBoundingBox::processWidgetFeedback(const ModuleFeedback& var)
 {
-  auto xyTr = any_cast_or_default_<Variable>(var);
-  std::cout << "EditMeshBoundingBox::processWidgetFeedback, name received from ViewSceneDialog is:\n\t" << xyTr.name() << std::endl;
-  for (const auto& subVar : xyTr.toVector())
-    std::cout << "EditMeshBoundingBox::processWidgetFeedback, value received from ViewSceneDialog is:\n\t" << subVar << std::endl;
+  auto vsf = static_cast<const ViewSceneFeedback&>(var);
+  std::cout << "EditMeshBoundingBox::processWidgetFeedback transfrom from ViewSceneDialog:" << std::endl;
+  vsf.transform.print();
 }
 
 void EditMeshBoundingBox::createBoxWidget()
@@ -204,7 +204,7 @@ void EditMeshBoundingBox::setStateDefaults()
   createBoxWidget();
   setBoxRestrictions();
 
-  getOutputPort(Transformation_Widget)->connectConnectionFeedbackListener([this](ModuleFeedback var) { processWidgetFeedback(var); });
+  getOutputPort(Transformation_Widget)->connectConnectionFeedbackListener([this](const ModuleFeedback& var) { processWidgetFeedback(var); });
 }
 
 void EditMeshBoundingBox::execute()
@@ -310,7 +310,7 @@ GeometryBaseHandle EditMeshBoundingBox::buildGeometryObject()
   points.at(4) = c - z;
   points.at(5) = c + z;
 
-  for (auto a : points)
+  for (const auto& a : points)
   {
     boundingBox.CreateNode(geom, a, scale, bbox_);
   }
@@ -446,7 +446,6 @@ void EditMeshBoundingBox::executeImpl(FieldHandle fh)
     Point in(center + sizez / 2.);
 
     Transform r;
-    Point unused;
     impl_->field_initial_transform_.load_identity();
 
     double sx = (right - center).length();

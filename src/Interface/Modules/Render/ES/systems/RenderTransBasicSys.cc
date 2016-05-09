@@ -244,14 +244,21 @@ private:
       return;
     }
 
-    if (!srstate.front().state.get(RenderState::USE_TRANSPARENCY) &&
-        !srstate.front().state.get(RenderState::USE_TRANSPARENT_EDGES) &&
-        !srstate.front().state.get(RenderState::USE_TRANSPARENT_NODES))
+    if (srstate.front().state.get(RenderState::IS_TEXT))
     {
       return;
     }
 
-    bool drawLines = (ibo.front().primMode == SpireIBO::LINES);
+    bool doRender = srstate.front().state.get(RenderState::USE_TRANSPARENCY) ||
+      srstate.front().state.get(RenderState::USE_TRANSPARENT_EDGES) ||
+      srstate.front().state.get(RenderState::USE_TRANSPARENT_NODES);
+
+    if (!doRender)
+    {
+      return;
+    }
+
+    bool drawLines = (ibo.front().primMode == static_cast<int>(SpireIBO::PRIMITIVE::LINES));
     GLuint iboID = ibo.front().glid;
 
     Core::Geometry::Vector dir(camera.front().data.worldToView[0][2],
@@ -286,7 +293,7 @@ private:
           }
 
           Core::Geometry::Vector diff = sortedObjects[index].prevDir - dir;
-          double distance = sqrtf(Core::Geometry::Dot(diff, diff));
+          double distance = sqrtf(Dot(diff, diff));
           if (distance >= 1.23 || sortedObjects[index].mSortedID == 0)
           {
             if (sortedObjects[index].mSortedID != 0)
