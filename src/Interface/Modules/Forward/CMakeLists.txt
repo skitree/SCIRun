@@ -43,8 +43,8 @@ SET(Interface_Modules_Forward_SOURCES
   InsertVoltageSourceDialog.cc
 )
 
-QT4_WRAP_UI(Interface_Modules_Forward_FORMS_HEADERS ${Interface_Modules_Forward_FORMS})
-QT4_WRAP_CPP(Interface_Modules_Forward_HEADERS_MOC ${Interface_Modules_Forward_HEADERS})
+QT5_WRAP_UI(Interface_Modules_Forward_FORMS_HEADERS ${Interface_Modules_Forward_FORMS})
+QT5_WRAP_CPP(Interface_Modules_Forward_HEADERS_MOC ${Interface_Modules_Forward_HEADERS})
 
 SCIRUN_ADD_LIBRARY(Interface_Modules_Forward
   ${Interface_Modules_Forward_HEADERS}

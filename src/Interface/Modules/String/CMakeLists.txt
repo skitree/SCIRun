@@ -55,8 +55,8 @@ SET(Interface_Modules_String_SOURCES
   ReportStringInfoDialog.cc
 )
 
-QT4_WRAP_UI(Interface_Modules_String_FORMS_HEADERS ${Interface_Modules_String_FORMS})
-QT4_WRAP_CPP(Interface_Modules_String_HEADERS_MOC ${Interface_Modules_String_HEADERS})
+QT5_WRAP_UI(Interface_Modules_String_FORMS_HEADERS ${Interface_Modules_String_FORMS})
+QT5_WRAP_CPP(Interface_Modules_String_HEADERS_MOC ${Interface_Modules_String_HEADERS})
 
 SCIRUN_ADD_LIBRARY(Interface_Modules_String 
   ${Interface_Modules_String_HEADERS}

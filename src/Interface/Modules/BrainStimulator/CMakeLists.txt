@@ -49,8 +49,8 @@ SET(Interface_Modules_BrainStimulator_SOURCES
   SetupRHSforTDCSandTMSDialog.cc
 )
 
-QT4_WRAP_UI(Interface_Modules_BrainStimulator_FORMS_HEADERS ${Interface_Modules_BrainStimulator_FORMS})
-QT4_WRAP_CPP(Interface_Modules_BrainStimulator_HEADERS_MOC ${Interface_Modules_BrainStimulator_HEADERS})
+QT5_WRAP_UI(Interface_Modules_BrainStimulator_FORMS_HEADERS ${Interface_Modules_BrainStimulator_FORMS})
+QT5_WRAP_CPP(Interface_Modules_BrainStimulator_HEADERS_MOC ${Interface_Modules_BrainStimulator_HEADERS})
 
 SCIRUN_ADD_LIBRARY(Interface_Modules_BrainStimulator
   ${Interface_Modules_BrainStimulator_HEADERS}

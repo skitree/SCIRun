@@ -40,8 +40,8 @@ SET(Interface_Modules_Inverse_SOURCES
   SolveInverseProblemWithTikhonovDialog.cc
 )
 
-QT4_WRAP_UI(Interface_Modules_Inverse_FORMS_HEADERS ${Interface_Modules_Inverse_FORMS})
-QT4_WRAP_CPP(Interface_Modules_Inverse_HEADERS_MOC ${Interface_Modules_Inverse_HEADERS})
+QT5_WRAP_UI(Interface_Modules_Inverse_FORMS_HEADERS ${Interface_Modules_Inverse_FORMS})
+QT5_WRAP_CPP(Interface_Modules_Inverse_HEADERS_MOC ${Interface_Modules_Inverse_HEADERS})
 
 SCIRUN_ADD_LIBRARY(Interface_Modules_Inverse
   ${Interface_Modules_Inverse_HEADERS}

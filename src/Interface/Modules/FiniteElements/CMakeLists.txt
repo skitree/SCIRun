@@ -46,8 +46,8 @@ SET(Interface_Modules_FiniteElements_SOURCES
   ApplyFEMVoltageSourceDialog.cc
 )
 
-QT4_WRAP_UI(Interface_Modules_FiniteElements_FORMS_HEADERS ${Interface_Modules_FiniteElements_FORMS})
-QT4_WRAP_CPP(Interface_Modules_FiniteElements_HEADERS_MOC ${Interface_Modules_FiniteElements_HEADERS})
+QT5_WRAP_UI(Interface_Modules_FiniteElements_FORMS_HEADERS ${Interface_Modules_FiniteElements_FORMS})
+QT5_WRAP_CPP(Interface_Modules_FiniteElements_HEADERS_MOC ${Interface_Modules_FiniteElements_HEADERS})
 
 SCIRUN_ADD_LIBRARY(Interface_Modules_FiniteElements
   ${Interface_Modules_FiniteElements_HEADERS}

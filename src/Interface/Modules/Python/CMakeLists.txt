@@ -43,8 +43,8 @@ SET(Interface_Modules_Python_SOURCES
   InterfaceWithPythonDialog.cc
 )
 
-QT4_WRAP_UI(Interface_Modules_Python_FORMS_HEADERS ${Interface_Modules_Python_FORMS})
-QT4_WRAP_CPP(Interface_Modules_Python_HEADERS_MOC ${Interface_Modules_Python_HEADERS})
+QT5_WRAP_UI(Interface_Modules_Python_FORMS_HEADERS ${Interface_Modules_Python_FORMS})
+QT5_WRAP_CPP(Interface_Modules_Python_HEADERS_MOC ${Interface_Modules_Python_HEADERS})
 
 SCIRUN_ADD_LIBRARY(Interface_Modules_Python
   ${Interface_Modules_Python_HEADERS}
