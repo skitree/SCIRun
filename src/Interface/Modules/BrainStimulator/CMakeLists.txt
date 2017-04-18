@@ -65,7 +65,7 @@ TARGET_LINK_LIBRARIES(Interface_Modules_BrainStimulator
   Interface_Modules_Base
 #  Dataflow_Modules_Legacy_BrainStimulator
   ${SCI_BOOST_LIBRARY}
-  ${QT_LIBRARIES}
+  Qt5::Widgets
 )
 
 IF(BUILD_SHARED_LIBS)

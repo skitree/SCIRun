@@ -71,7 +71,7 @@ TARGET_LINK_LIBRARIES(Interface_Modules_DataIO
   Modules_Legacy_Teem_DataIO
   Interface_Modules_Base
   ${SCI_BOOST_LIBRARY}
-  ${QT_LIBRARIES})
+  Qt5::Widgets)
 
 IF(BUILD_SHARED_LIBS)
   ADD_DEFINITIONS(-DBUILD_Interface_Modules_DataIO)

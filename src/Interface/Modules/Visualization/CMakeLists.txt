@@ -84,7 +84,7 @@ TARGET_LINK_LIBRARIES(Interface_Modules_Visualization
   Interface_Modules_Base
   Core_Application
   ${SCI_BOOST_LIBRARY}
-  ${QT_LIBRARIES}
+  Qt5::Widgets
 )
 
 IF(BUILD_SHARED_LIBS)

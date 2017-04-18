@@ -193,7 +193,7 @@ TARGET_LINK_LIBRARIES(Interface_Modules_Fields
   Modules_Legacy_Fields
   Modules_Basic
   ${SCI_BOOST_LIBRARY}
-  ${QT_LIBRARIES}
+  Qt5::Widgets
 )
 
 IF(BUILD_SHARED_LIBS)

@@ -89,7 +89,7 @@ TARGET_LINK_LIBRARIES(Interface_Modules_Factory
   Interface_Modules_Teem
   Interface_Modules_Visualization
   ${SCI_BOOST_LIBRARY}
-  ${QT_LIBRARIES}
+  Qt5::Widgets
 )
 
 IF(BUILD_WITH_PYTHON)

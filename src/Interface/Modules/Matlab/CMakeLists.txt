@@ -60,7 +60,7 @@ TARGET_LINK_LIBRARIES(Interface_Modules_Matlab
   Modules_Legacy_Matlab_DataIO
   Interface_Modules_Base
   ${SCI_BOOST_LIBRARY}
-  ${QT_LIBRARIES})
+  Qt5::Widgets)
 
 IF(BUILD_SHARED_LIBS)
   ADD_DEFINITIONS(-DBUILD_Interface_Modules_Matlab)

@@ -67,7 +67,7 @@ TARGET_LINK_LIBRARIES(Interface_Modules_Base
   Algorithms_Base
   Core_Logging
   ${SCI_BOOST_LIBRARY}
-  ${QT_LIBRARIES}
+  Qt5::Widgets
 )
 
 IF(BUILD_SHARED_LIBS)

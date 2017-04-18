@@ -40,7 +40,7 @@ TARGET_LINK_LIBRARIES(Interface_Modules_Render_Tests
   ${QT_OPENGL_LIBRARY}
   ${CPM_LIBRARIES}
   ${SCI_BOOST_LIBRARY}
-  ${QT_LIBRARIES}
+  Qt5::Widgets
   Testing_Utils
   Testing_ModuleTestBase
   gtest_main
