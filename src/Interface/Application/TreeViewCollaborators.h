@@ -29,7 +29,7 @@
 #ifndef INTERFACE_APPLICATION_TREEVIEWCOLLABORATORS_H
 #define INTERFACE_APPLICATION_TREEVIEWCOLLABORATORS_H
 
-#include <QtGui>
+#include <QtWidgets>
 
 namespace SCIRun {
 namespace Gui {

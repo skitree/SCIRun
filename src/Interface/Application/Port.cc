@@ -27,7 +27,7 @@
 */
 
 #include <iostream>
-#include <QtGui>
+#include <QtWidgets>
 #include <boost/lambda/lambda.hpp>
 #include <Dataflow/Network/Port.h>
 #include <Interface/Application/Port.h>

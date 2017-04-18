@@ -26,7 +26,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <QtGui>
+#include <QtWidgets>
 #include <iostream>
 #include <Dataflow/Engine/Controller/ProvenanceManager.h>
 #include <Interface/Application/ProvenanceWindow.h>

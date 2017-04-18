@@ -27,7 +27,7 @@
 */
 
 #include <iostream>
-#include <QtGui>
+#include <QtWidgets>
 #include <Interface/Application/NetworkExecutionProgressBar.h>
 
 using namespace SCIRun::Gui;

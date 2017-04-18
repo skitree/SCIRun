@@ -26,7 +26,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <QtGui>
+#include <QtWidgets>
 #include <Interface/Modules/Base/ModuleButtonBar.h>
 #include <Interface/Modules/Base/ModuleDialogGeneric.h>
 

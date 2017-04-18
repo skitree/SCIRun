@@ -29,7 +29,7 @@
 #ifndef INTERFACE_MODULES_SCREENSHOT_H
 #define INTERFACE_MODULES_SCREENSHOT_H
 
-#include <QtGui>
+#include <QtWidgets>
 #ifndef Q_MOC_RUN
 #include <Modules/Render/ViewScene.h>
 #endif

@@ -1,6 +1,6 @@
 //TODO: not sure if anything useful left here. need to take another look
 
-//#include <QtGui>
+//#include <QtWidgets>
 //
 //Node::Node()
 //{

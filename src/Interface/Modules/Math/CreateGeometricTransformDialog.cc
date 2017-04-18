@@ -29,7 +29,7 @@
 #include <Interface/Modules/Math/CreateGeometricTransformDialog.h>
 #include <Modules/Math/CreateGeometricTransform.h>
 #include <Core/Algorithms/Base/AlgorithmVariableNames.h>
-#include <QtGui>
+#include <QtWidgets>
 
 using namespace SCIRun::Gui;
 using namespace SCIRun::Modules::Math;

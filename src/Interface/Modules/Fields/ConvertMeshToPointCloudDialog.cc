@@ -30,7 +30,7 @@
 #include <Core/Algorithms/Base/AlgorithmVariableNames.h>
 #include <Core/Algorithms/Legacy/Fields/ConvertMeshType/ConvertMeshToPointCloudMeshAlgo.h>
 #include <Dataflow/Network/ModuleStateInterface.h>
-#include <QtGui>
+#include <QtWidgets>
 
 using namespace SCIRun::Gui;
 using namespace SCIRun::Dataflow::Networks;

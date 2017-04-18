@@ -26,7 +26,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <QtGui>
+#include <QtWidgets>
 #include <iostream>
 #include <Interface/Application/ModuleLogWindow.h>
 #include <Interface/Application/SCIRunMainWindow.h>

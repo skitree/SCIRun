@@ -26,7 +26,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <QtGui>
+#include <QtWidgets>
 #include <Interface/Application/ClosestPortFinder.h>
 #include <Interface/Application/ModuleProxyWidget.h>
 #include <Interface/Application/ModuleWidget.h>

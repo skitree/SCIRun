@@ -26,7 +26,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <QtGui>
+#include <QtWidgets>
 #include <iostream>
 #include <Interface/Application/PreferencesWindow.h>
 #include <Interface/Application/NetworkEditor.h>

@@ -26,7 +26,7 @@
   DEALINGS IN THE SOFTWARE.
 */
 
-#include <QtGui>
+#include <QtWidgets>
 #include <functional>
 #include <boost/bind.hpp>
 #include <boost/assign.hpp>

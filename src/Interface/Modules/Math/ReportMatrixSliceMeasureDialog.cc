@@ -28,7 +28,7 @@
 
 #include <Interface/Modules/Math/ReportMatrixSliceMeasureDialog.h>
 #include <Core/Algorithms/Base/AlgorithmVariableNames.h>
-#include <QtGui>
+#include <QtWidgets>
 
 using namespace SCIRun::Gui;
 using namespace SCIRun::Dataflow::Networks;

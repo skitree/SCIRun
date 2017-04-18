@@ -27,7 +27,7 @@
 */
 
 #include <iostream>
-#include <QtGui>
+#include <QtWidgets>
 #include "ui_Module.h"
 #include <boost/thread.hpp>
 #include <Core/Logging/Log.h>

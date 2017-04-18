@@ -28,7 +28,7 @@
 
 #include <iostream>
 #include <stdexcept>
-#include <QtGui>
+#include <QtWidgets>
 #include <Core/Logging/Log.h>
 #include <Interface/Application/Note.h>
 #include <Interface/Application/HasNotes.h>

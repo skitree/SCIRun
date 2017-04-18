@@ -26,7 +26,7 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <QtGui>
+#include <QtWidgets>
 #include <Interface/Modules/Base/HasParserHelpDialog.h>
 
 using namespace SCIRun::Gui;

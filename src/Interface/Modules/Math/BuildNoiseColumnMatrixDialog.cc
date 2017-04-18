@@ -29,7 +29,7 @@
 #include <Interface/Modules/Math/BuildNoiseColumnMatrixDialog.h>
 #include <Modules/Legacy/Math/BuildNoiseColumnMatrix.h>
 #include <Core/Algorithms/Math/BuildNoiseColumnMatrix.h>
-#include <QtGui>
+#include <QtWidgets>
 
 using namespace SCIRun::Gui;
 using namespace SCIRun::Dataflow::Networks;
