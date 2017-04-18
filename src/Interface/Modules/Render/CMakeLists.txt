@@ -98,6 +98,7 @@ TARGET_LINK_LIBRARIES(Interface_Modules_Render
   ${CPM_LIBRARIES}
   ${SCI_BOOST_LIBRARY}
   Qt5::Widgets
+  Qt5::OpenGL
   ${SCI_FREETYPE_LIBRARY}
 )
 

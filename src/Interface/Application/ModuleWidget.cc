@@ -28,6 +28,7 @@
 
 #include <iostream>
 #include <QtWidgets>
+#include <QtConcurrent>
 #include "ui_Module.h"
 #include <boost/thread.hpp>
 #include <Core/Logging/Log.h>

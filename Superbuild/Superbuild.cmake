@@ -117,6 +117,7 @@ IF(NOT BUILD_HEADLESS)
 	FIND_PACKAGE(Qt5Widgets REQUIRED HINTS ${Qt5_PATH})
 	FIND_PACKAGE(Qt5Network REQUIRED HINTS ${Qt5_PATH})
     FIND_PACKAGE(Qt5OpenGL REQUIRED HINTS ${Qt5_PATH})
+	FIND_PACKAGE(Qt5Concurrent REQUIRED HINTS ${Qt5_PATH})
   ELSE()
     MESSAGE(SEND_ERROR "Set Qt5_PATH to directory where Qt 5 is installed (containing lib and bin subdirectories) or set BUILD_HEADLESS to ON.")
   ENDIF()
@@ -239,6 +240,7 @@ IF(NOT BUILD_HEADLESS)
     "-DQt5OpenGL_DIR:PATH=${Qt5OpenGL_DIR}"
 	"-DQt5Network_DIR:PATH=${Qt5Network_DIR}"
 	"-DQt5Widgets_DIR:PATH=${Qt5Widgets_DIR}"
+	"-DQt5Concurrent_DIR:PATH=${Qt5Concurrent_DIR}"
     "-DMACDEPLOYQT_OUTPUT_LEVEL:STRING=${MACDEPLOYQT_OUTPUT_LEVEL}"
   )
 ENDIF()
