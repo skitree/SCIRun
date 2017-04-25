@@ -64,11 +64,11 @@ namespace SCIRun
 {
   namespace Gui
   {
-class PythonConsoleWidget : public QObject
-{
-  Q_OBJECT
-};
-}}
+    class PythonConsoleWidget : public QDockWidget
+    {
+      Q_OBJECT
+    };
+  }}
 #endif
 
 #endif
