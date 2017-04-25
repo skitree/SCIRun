@@ -114,7 +114,7 @@ void NoteDisplayHelper::updateNoteImpl(const Note& note)
     setNoteGraphicsContext();
     if (!scene_)
       Log::get() << WARN << "Scene not set, network notes will not be displayed!" << std::endl;
-    note_ = new QGraphicsTextItem("", 0, scene_);
+    note_ = new QGraphicsTextItem("");
     note_->setDefaultTextColor(Qt::white);
   }
 

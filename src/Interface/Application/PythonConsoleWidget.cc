@@ -33,6 +33,7 @@
 #include <QKeyEvent>
 #include <QPointer>
 #include <QTextCursor>
+#include <QMimeData>
 #include <QTextEdit>
 #include <QScrollBar>
 #include <QVBoxLayout>
@@ -159,8 +160,8 @@ void PythonConsoleEdit::keyPressEvent(QKeyEvent* e)
   {
     if (!history_area)
     {
-      const QMimeData* const clipboard = QApplication::clipboard()->mimeData();
-      const QString text = clipboard->text();
+      auto clipboard = QApplication::clipboard()->mimeData();
+      auto text = clipboard->text();
       if (!text.isNull())
       {
         text_cursor.insertText(text);

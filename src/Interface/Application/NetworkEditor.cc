@@ -28,6 +28,7 @@
 
 #include <sstream>
 #include <QtWidgets>
+#include <QtConcurrent>
 #include <Interface/Application/NetworkEditor.h>
 #include <Interface/Application/Node.h>
 #include <Interface/Application/Connection.h>
@@ -362,7 +363,7 @@ ModuleProxyWidget* NetworkEditor::setupModuleWidget(ModuleWidget* module)
 
   proxy->setZValue(zLevelManager_->get_max());
 
-  while (!scene_->items(lastModulePosition_.x() - 20, lastModulePosition_.y() - 20, 40, 40).isEmpty())
+  while (!scene_->items(QRectF(lastModulePosition_.x() - 20, lastModulePosition_.y() - 20, 40, 40)).isEmpty())
   {
     lastModulePosition_ += moduleAddIncrement;
   }
@@ -904,7 +905,7 @@ void NetworkEditor::searchTextChanged(const QString& text)
       auto title = new SearchResultItem("Search results:", Qt::green, {});
       title->setPos(positionOfFloatingText(title->num(), true, 20, textScale * 22));
       scene()->addItem(title);
-      title->scale(textScale, textScale);
+      title->setTransform(QTransform::fromScale(textScale, textScale));
     }
     for (const auto& result : results)
     {
@@ -912,7 +913,7 @@ void NetworkEditor::searchTextChanged(const QString& text)
         std::get<ItemColor>(result), std::get<ItemAction>(result));
       searchItem->setPos(positionOfFloatingText(searchItem->num(), true, 50, textScale * 22));
       scene()->addItem(searchItem);
-      searchItem->scale(textScale, textScale);
+      searchItem->setTransform(QTransform::fromScale(textScale, textScale));
     }
   }
 }
