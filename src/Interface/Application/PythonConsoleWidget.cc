@@ -27,6 +27,7 @@
  */
 
 #ifdef BUILD_WITH_PYTHON
+
 #include <iostream>
 #include <QApplication>
 #include <QClipboard>
@@ -52,8 +53,7 @@ class PythonConsoleEdit : public QTextEdit
 public:
   explicit PythonConsoleEdit(PythonConsoleWidget* parent);
 
-  virtual void keyPressEvent(QKeyEvent* e);
-  //virtual void focusOutEvent( QFocusEvent* e );
+  void keyPressEvent(QKeyEvent* e) override;
 
   const int document_end();
   QString& command_buffer();
@@ -80,12 +80,6 @@ public:
   QStringList command_history_;
   // Current position in the command history
   int command_position_;
-
-  //public:
-  //	static void Prompt( PythonConsoleEditQWeakPointer edit, const std::string& text );
-  //	static void PrintOutput( PythonConsoleEditQWeakPointer edit, const std::string& text );
-  //	static void PrintError( PythonConsoleEditQWeakPointer edit, const std::string& text );
-  //	static void PrintCommand( PythonConsoleEditQWeakPointer edit, const std::string& text );
 };
 
 PythonConsoleEdit::PythonConsoleEdit(PythonConsoleWidget* parent) :
@@ -408,11 +402,6 @@ private_(new PythonConsoleWidgetPrivate)
 
   showBanner();
   PythonInterpreter::Instance().importSCIRunLibrary();
-}
-
-PythonConsoleWidget::~PythonConsoleWidget()
-{
-  //this->disconnect_all();
 }
 
 void PythonConsoleWidget::showBanner()

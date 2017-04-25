@@ -29,12 +29,14 @@
 #ifndef INTERFACE_APPLICATION_PYTHONCONSOLEWIDGET_H
 #define INTERFACE_APPLICATION_PYTHONCONSOLEWIDGET_H
 
+#ifndef Q_MOC_RUN
 #include <boost/shared_ptr.hpp>
+#endif
 #include <QDockWidget>
 
 #ifdef BUILD_WITH_PYTHON
 class PythonConsoleWidgetPrivate;
-typedef boost::shared_ptr< PythonConsoleWidgetPrivate > PythonConsoleWidgetPrivateHandle;
+using PythonConsoleWidgetPrivateHandle = boost::shared_ptr< PythonConsoleWidgetPrivate >;
 
 namespace SCIRun
 {
@@ -46,8 +48,7 @@ class PythonConsoleWidget : public QDockWidget
 	Q_OBJECT
 
 public:
-	PythonConsoleWidget( QWidget* parent = 0 );
-	virtual ~PythonConsoleWidget();
+  explicit PythonConsoleWidget( QWidget* parent = nullptr );
 
 public Q_SLOTS:
   void showBanner();
@@ -59,7 +60,15 @@ private:
 }}
 
 #else
-class PythonConsoleWidget {};
+namespace SCIRun
+{
+  namespace Gui
+  {
+class PythonConsoleWidget : public QObject
+{
+  Q_OBJECT
+};
+}}
 #endif
 
 #endif

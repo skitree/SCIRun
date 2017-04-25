@@ -147,6 +147,7 @@ SET(NonPythonInterface_ApplicationLinkLibraries
   Core_Application_Preferences
   ${SCI_BOOST_LIBRARY}
   Qt5::Widgets
+  Qt5::Network
   ${CMAKE_THREAD_LIBS}
 )
 
