@@ -107,11 +107,6 @@ NetworkEditor::NetworkEditor(const NetworkEditorParameters& params, QWidget* par
 
 void NetworkEditor::setNetworkEditorController(boost::shared_ptr<NetworkEditorControllerGuiProxy> controller)
 {
-  for (auto& child : childrenNetworks_)
-  {
-    child.second->get()->setNetworkEditorController(controller);
-  }
-
   if (controller_ == controller)
     return;
 
@@ -149,7 +144,7 @@ boost::shared_ptr<NetworkEditorControllerGuiProxy> NetworkEditor::getNetworkEdit
 
 void NetworkEditor::addModuleWidget(const std::string& name, ModuleHandle module, const ModuleCounter& count)
 {
-  if (parentNetwork_)
+  if (!fileLoading_ && inEditingContext_ != this)
     return;
 
   latestModuleId_ = module->get_id().id_;
@@ -522,6 +517,9 @@ NetworkEditor::ModulePair NetworkEditor::selectedModulePair() const
 
 void NetworkEditor::del()
 {
+  if (!isActiveWindow())
+    return;
+
   auto items = scene_->selectedItems();
   QMutableListIterator<QGraphicsItem*> i(items);
   while (i.hasNext())
@@ -541,12 +539,18 @@ void NetworkEditor::del()
 
 void NetworkEditor::cut()
 {
+  if (!isActiveWindow())
+    return;
+
   copy();
   del();
 }
 
 void NetworkEditor::copy()
 {
+  if (!isActiveWindow())
+    return;
+
   auto selected = scene_->selectedItems();
   auto modSelected = [&selected](ModuleHandle mod)
   {
@@ -635,7 +639,7 @@ void NetworkEditor::dropEvent(QDropEvent* event)
     auto urls = data->urls();
     if (!urls.isEmpty())
     {
-      auto file = urls[0].path();
+      auto file = urls[0].toLocalFile();
       QFileInfo check_file(file);
       if (check_file.exists() && check_file.isFile() && file.endsWith("srn5"))
       {
@@ -655,8 +659,7 @@ void NetworkEditor::dropEvent(QDropEvent* event)
 
 void NetworkEditor::addNewModuleAtPosition(const QPointF& position)
 {
-  if (parentNetwork_)
-    return;
+  InEditingContext iec(this);
 
   lastModulePosition_ = position;
   controller_->addModule(moduleSelectionGetter_->text().toStdString());
@@ -679,7 +682,6 @@ void NetworkEditor::addModuleViaDoubleClickedTreeItem()
 
 void NetworkEditor::dragEnterEvent(QDragEnterEvent* event)
 {
-  //???
   event->acceptProposedAction();
 }
 
@@ -704,9 +706,13 @@ void NetworkEditor::mouseMoveEvent(QMouseEvent *event)
       if (!(event->modifiers() & Qt::ControlModifier))
       {
         auto selectedPair = cL->getConnectedToModuleIds();
+        auto c1 = findById(scene_->items(), selectedPair.first);
+        if (c1)
+          c1->setSelected(true);
+        auto c2 = findById(scene_->items(), selectedPair.second);
+        if (c2)
+          c2->setSelected(true);
 
-        findById(scene_->items(), selectedPair.first)->setSelected(true);
-        findById(scene_->items(), selectedPair.second)->setSelected(true);
         modulesSelectedByCL_ = true;
       }
     }
@@ -985,6 +991,10 @@ ModulePositionsHandle NetworkEditor::dumpModulePositions(ModuleFilter filter) co
 {
   auto positions(boost::make_shared<ModulePositions>());
   fillModulePositionMap(*positions, filter);
+  for (const auto& sub : childrenNetworks_)
+  {
+    sub.second->get()->fillModulePositionMap(*positions, filter);
+  }
   return positions;
 }
 
@@ -1117,6 +1127,16 @@ DisabledComponentsHandle NetworkEditor::dumpDisabledComponents(ModuleFilter modF
   return disabled;
 }
 
+SubnetworksHandle NetworkEditor::dumpSubnetworks(ModuleFilter modFilter) const
+{
+  auto subnets(boost::make_shared<Subnetworks>());
+  for (const auto& child : childrenNetworks_)
+  {
+    child.second->get()->dumpSubnetworksImpl(child.first, *subnets, modFilter);
+  }
+  return subnets;
+}
+
 void NetworkEditor::updateModulePositions(const ModulePositions& modulePositions, bool selectAll)
 {
   Q_FOREACH(QGraphicsItem* item, scene_->items())
@@ -1132,6 +1152,10 @@ void NetworkEditor::updateModulePositions(const ModulePositions& modulePositions
           w->setSelected(true);
       }
     }
+  }
+  for (const auto& child : childrenNetworks_)
+  {
+    child.second->get()->updateModulePositions(modulePositions, selectAll);
   }
 }
 
@@ -1277,7 +1301,8 @@ void NetworkEditor::clear()
   //TODO: this (unwritten) method does not need to be called here.  the dtors of all the module widgets get called when the scene_ is cleared, which triggered removal from the underlying network.
   // we'll need a similar hook when programming the scripting interface (moduleWidgets<->modules).
   //controller_->clear();
-  Q_EMIT modified();
+  if (!parentNetwork_)
+    Q_EMIT modified();
 }
 
 NetworkFileHandle NetworkEditor::saveNetwork() const
@@ -1352,6 +1377,8 @@ void NetworkEditor::enableViewScenes()
 
 size_t NetworkEditor::numModules() const
 {
+  if (!controller_)
+    return 0;
   return controller_->numModules();
 }
 
@@ -1422,6 +1449,9 @@ QPixmap NetworkEditor::sceneGrab()
 
 void NetworkEditor::selectAll()
 {
+  if (!isActiveWindow())
+    return;
+
   Q_FOREACH(QGraphicsItem* item, scene_->items())
   {
     item->setSelected(true);
@@ -1767,6 +1797,15 @@ void NetworkEditor::renameTagGroupInFile()
   }
 
   Q_EMIT modified();
+}
+
+void NetworkEditor::scrollContentsBy(int dx, int dy)
+{
+  for (auto& item : subnetPortHolders_)
+  {
+    item->setPos(item->pos() + QPointF(-dx,-dy));
+  }
+  QGraphicsView::scrollContentsBy(dx, dy);
 }
 
 void NetworkEditor::drawTagGroups()
