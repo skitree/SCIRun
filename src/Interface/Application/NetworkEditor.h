@@ -43,6 +43,7 @@
 #include <Dataflow/Serialization/Network/ModulePositionGetter.h>
 #include <Interface/Application/Note.h>
 #include <Interface/Application/Utility.h>
+#include <Interface/Application/Subnetworks.h>
 #endif
 
 class QMenu;
@@ -59,6 +60,7 @@ namespace SCIRun {
 namespace Gui {
 
   class DialogErrorControl;
+  class SubnetPortsBridgeProxyWidget;
 
   class CurrentModuleSelection
   {
@@ -163,8 +165,8 @@ namespace Gui {
   class ModuleWidget;
   class NetworkEditorControllerGuiProxy;
 	class DialogErrorControl;
-  using PortRewiringMap = std::map<std::string, std::map<std::string, Dataflow::Networks::PortId>>;
-  using PortRewiringMap2 = std::map<std::string, ConnectionLine*>;
+  class PortWidget;
+  using PortRewiringMap = std::map<std::string, ConnectionLine*>;
 
   struct NetworkEditorParameters
   {
@@ -175,7 +177,16 @@ namespace Gui {
     TagColorFunc tagColor;
     TagNameFunc tagName;
     double highResolutionExpandFactor;
+    class DockManager* dockManager_;
   };
+
+  namespace NetworkBoundaries
+  {
+    const int sceneWidth = 1600;
+    const int sceneHeight = 3200;
+
+    QPointF keepInScene(const QPointF& p);
+  }
 
   class NetworkEditor : public QGraphicsView,
     public Dataflow::Networks::ExecutableLookup,
@@ -260,12 +271,24 @@ namespace Gui {
 
     NetworkEditor* parentNetwork() { return parentNetwork_; }
     size_t childCount() const { return childrenNetworks_.size(); }
-    void killChild(const QString& name);
+    void killChild(const QString& name, bool force);
     void sendItemsToParent();
+    bool containsModule(const std::string& moduleId) const;
 
     using ConnectorFunc = std::function<void(NetworkEditor*)>;
     static void setConnectorFunc(ConnectorFunc func) { connectorFunc_ = func; }
 
+    struct InEditingContext
+    {
+      explicit InEditingContext(NetworkEditor* ed)
+      {
+        inEditingContext_ = ed;
+      }
+      ~InEditingContext()
+      {
+        inEditingContext_ = nullptr;
+      }
+    };
   protected:
     void dropEvent(QDropEvent* event) override;
     void dragEnterEvent(QDragEnterEvent* event) override;
@@ -276,6 +299,7 @@ namespace Gui {
     void contextMenuEvent(QContextMenuEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void scrollContentsBy(int dx, int dy) override;
+    void resizeEvent(QResizeEvent *event) override;
 
   public Q_SLOTS:
     void addModuleWidget(const std::string& name, SCIRun::Dataflow::Networks::ModuleHandle module, const SCIRun::Dataflow::Engine::ModuleCounter& count);
@@ -306,7 +330,7 @@ namespace Gui {
     void highlightTaggedItem(int tagValue);
     void resetNetworkDueToCycle();
     void moduleWindowAction();
-    void cleanUpNetwork(); 
+    void cleanUpNetwork();
     void redrawTagGroups();
     void adjustModuleWidth(int delta);
     void adjustModuleHeight(int delta);
@@ -318,10 +342,9 @@ namespace Gui {
       QList<QGraphicsItem*> items, const QRectF& rect);
     void showSubnetChild(const QString& name);
     void addSubnetChild(const QString& name, SCIRun::Dataflow::Networks::ModuleHandle mod);
-    void removeSubnetChild(const QString& name);
+    void subnetMenuActionTriggered();
 
   Q_SIGNALS:
-    void addConnection(const SCIRun::Dataflow::Networks::ConnectionDescription&);
     void connectionDeleted(const SCIRun::Dataflow::Networks::ConnectionId& id);
     void modified();
     void networkExecuted();
@@ -347,6 +370,7 @@ namespace Gui {
     void bringToFront();
     void sendToBack();
     void searchTextChanged(const QString& text);
+    void clearSiblingSelections();
 
   private:
     using ModulePair = QPair<ModuleWidget*, ModuleWidget*>;
@@ -360,16 +384,21 @@ namespace Gui {
     void fillModulePositionMap(SCIRun::Dataflow::Networks::ModulePositions& positions, SCIRun::Dataflow::Networks::ModuleFilter filter) const;
     void highlightTaggedItem(QGraphicsItem* item, int tagValue);
     void pasteImpl(const QString& xml);
+    void connectNewModuleImpl(const Dataflow::Networks::ModuleHandle& moduleToConnectTo, const Dataflow::Networks::PortDescriptionInterface* portToConnect,
+      const std::string& newModuleName, QObject* sender);
     void drawTagGroups();
     void removeTagGroups();
     QString checkForOverriddenTagName(int tag) const;
     void renameTagGroup(int tag, const QString& name);
     QPointF positionOfFloatingText(int num, bool top, int horizontalIndent, int verticalSpacing) const;
-    QPixmap grabSubnetPic(const QRectF& rect);
+    QPixmap grabSubnetPic(const QRectF& rect, const QList<QGraphicsItem*>& items);
     QString convertToTooltip(const QPixmap& pic) const;
     void initializeSubnet(const QString& name, SCIRun::Dataflow::Networks::ModuleHandle mod, NetworkEditor* subnet);
     void dumpSubnetworksImpl(const QString& name, Dataflow::Networks::Subnetworks& data, Dataflow::Networks::ModuleFilter modFilter) const;
     QList<QGraphicsItem*> includeConnections(QList<QGraphicsItem*> items) const;
+    QRectF visibleRect() const;
+    void deleteImpl(QList<QGraphicsItem*> items);
+    QPointF getModulePositionAdjustment(const SCIRun::Dataflow::Networks::ModulePositions& modulePositions);
 
     // default constructed
     bool modulesSelectedByCL_{ false };
@@ -380,7 +409,7 @@ namespace Gui {
     bool insertingNewModuleAlongConnection_{ false };
     bool showTagGroupsOnFileLoad_{ false };
     bool visibleItems_{ true };
-    QPointF lastModulePosition_{ 0, 0 };
+    QPointF lastModulePosition_{ 30, 30 };
     std::string latestModuleId_;
     std::map<int, std::string> tagLabelOverrides_;
 
@@ -408,26 +437,31 @@ namespace Gui {
     NetworkEditor* parentNetwork_ {nullptr};
     std::map<QString, class SubnetworkEditor*> childrenNetworks_;
     std::map<QString, QList<QGraphicsItem*>> childrenNetworkItems_;
-    QList<QGraphicsItem*> subnetPortHolders_;
+    QList<SubnetPortsBridgeProxyWidget*> subnetPortHolders_;
     void setupPortHolders(Dataflow::Networks::ModuleHandle mod);
     void setupPortHolder(const std::vector<SharedPointer<SCIRun::Dataflow::Networks::PortDescriptionInterface>>& ports, const QString& name,
       std::function<QPointF(const QRectF&)> position);
+    void removeSubnetPortHolders();
+    void resizeSubnetPortHolders(double scaleFactor);
+    std::vector<QGraphicsItem*> subnetItemsToMove();
     PortRewiringMap portRewiringMap_;
-    PortRewiringMap2 portRewiringMap2_;
+    QSet<QString> currentSubnetNames_;
+    std::map<std::string, QString> subnetNameMap_;
+
+    template <typename Func>
+    void tailRecurse(Func func)
+    {
+      for (auto& child : childrenNetworks_)
+      {
+        func(child.second->get());
+      }
+    }
 
     static NetworkEditor* inEditingContext_;
-    struct InEditingContext
-    {
-      explicit InEditingContext(NetworkEditor* ed)
-      {
-        inEditingContext_ = ed;
-      }
-      ~InEditingContext()
-      {
-        inEditingContext_ = nullptr;
-      }
-    };
+
     static ConnectorFunc connectorFunc_;
+    static std::function<QPointF(const QRectF&)> topSubnetPortHolderPositioner_;
+    static std::function<QPointF(const QRectF&)> bottomSubnetPortHolderPositioner_;
   };
 
   ModuleWidget* getModule(QGraphicsItem* item);

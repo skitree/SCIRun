@@ -29,9 +29,11 @@
 #include <QtWidgets>
 #include <Interface/Application/MainWindowCollaborators.h>
 #include <Interface/Application/SCIRunMainWindow.h>
+#include <Interface/Modules/Base/ModuleDialogGeneric.h>
 #include <Core/Logging/Log.h>
 #include <Core/Application/Preferences/Preferences.h>
 #include <Interface/Application/NetworkEditorControllerGuiProxy.h>
+#include <numeric>
 
 #include "ui_ConnectionStyleWizardPage.h"
 #include "ui_OtherSettingsWizardPage.h"
@@ -86,7 +88,7 @@ bool TreeViewModuleGetter::isModule() const
 
 QString TreeViewModuleGetter::clipboardXML() const
 {
-  return tree_.currentItem()->toolTip(0);
+  return tree_.currentItem()->data(0, SCIRunMainWindow::clipboardKey).toString();
 }
 
 bool TreeViewModuleGetter::isClipboardXML() const
@@ -263,10 +265,10 @@ QWizardPage* NewUserWizard::createDocPage()
   page->setSubTitle("For more information on SCIRun 5 functionality, documentation can be found at: ");
   auto layout = new QVBoxLayout;
   auto docLabel = new QLabel(
+    "<p><a href = \"http://sciinstitute.github.io/scirun.pages/\">SCIRun Doc Home Page</a>"
     "<p><a href = \"https://github.com/SCIInstitute/SCIRun/wiki\">New SCIRun Wiki</a>"
     "<p><a href = \"http://scirundocwiki.sci.utah.edu/SCIRunDocs/index.php5/CIBC:Documentation:SCIRun:Reference\">Old SCIRun Wiki</a>"
-    "<p><a href = \"http://sciinstitute.github.io/scirun.pages/\">SCIRun Doc Home Page</a>"
-    "<p><a href = \"mailto:scirun-users@sci.utah.edu\">SCIRun Users mailing list</a>"
+    "<p><a href = \"https://lists.sci.utah.edu/sympa/arc/scirun-users\">SCIRun Users mailing list</a>"
   );
   docLabel->setStyleSheet("QLabel { background-color : lightgray; color : blue; }");
   docLabel->setAlignment(Qt::AlignCenter);
@@ -379,7 +381,6 @@ void NetworkEditorBuilder::connectAll(NetworkEditor* editor)
   QObject::connect(mainWindow_->actionSelectAll_, SIGNAL(triggered()), editor, SLOT(selectAll()));
   QObject::connect(mainWindow_->actionDelete_, SIGNAL(triggered()), editor, SLOT(del()));
   QObject::connect(mainWindow_->actionCleanUpNetwork_, SIGNAL(triggered()), editor, SLOT(cleanUpNetwork()));
-  QObject::connect(mainWindow_->actionMakeSubnetwork_, SIGNAL(triggered()), editor, SLOT(makeSubnetwork()));
   QObject::connect(editor, SIGNAL(zoomLevelChanged(int)), mainWindow_, SLOT(showZoomStatusMessage(int)));
   QObject::connect(mainWindow_->actionCut_, SIGNAL(triggered()), editor, SLOT(cut()));
   QObject::connect(mainWindow_->actionCopy_, SIGNAL(triggered()), editor, SLOT(copy()));
@@ -393,7 +394,45 @@ void NetworkEditorBuilder::connectAll(NetworkEditor* editor)
     QObject::connect(mainWindow_->actionPinAllModuleUIs_, SIGNAL(triggered()), editor, SLOT(pinAllModuleUIs()));
     QObject::connect(mainWindow_->actionRestoreAllModuleUIs_, SIGNAL(triggered()), editor, SLOT(restoreAllModuleUIs()));
     QObject::connect(mainWindow_->actionHideAllModuleUIs_, SIGNAL(triggered()), editor, SLOT(hideAllModuleUIs()));
+    QObject::connect(mainWindow_->actionMakeSubnetwork_, SIGNAL(triggered()), editor, SLOT(makeSubnetwork()));
   }
   // children only
   // addDockWidget(Qt::RightDockWidgetArea, subnet);
+}
+
+DockManager::DockManager(int& availableSize, QObject* parent) : QObject(parent),
+  availableHeight_(availableSize),
+  currentDialogs_(ModuleDialogGeneric::instances())
+{
+
+}
+
+void DockManager::requestShow(ModuleDialogGeneric* dialog)
+{
+  //clear out old pointers
+  collapseQueue_.erase(std::remove_if(collapseQueue_.begin(), collapseQueue_.end(),
+    [this](ModuleDialogGeneric* d) { return currentDialogs_.find(d) == currentDialogs_.end(); }),
+    collapseQueue_.end());
+
+  // collapse oldest until they fit
+  auto needToFit = availableHeight_ - dialog->size().height();
+  while (usedSpace() > needToFit)
+  {
+    auto firstNonCollapsed = std::find_if(collapseQueue_.begin(), collapseQueue_.end(),
+      [dialog](ModuleDialogGeneric* d) { return d != dialog && !d->isCollapsed(); });
+    if (firstNonCollapsed != collapseQueue_.end())
+      (*firstNonCollapsed)->collapse();
+    else
+      break;
+  }
+
+  // add latest
+  collapseQueue_.push_back(dialog);
+  dialog->expand();
+}
+
+int DockManager::usedSpace() const
+{
+  return std::accumulate(currentDialogs_.begin(), currentDialogs_.end(), 0,
+    [](int height, ModuleDialogGeneric* d) { return height + (d->isCollapsed() ? 0 : d->size().height()); });
 }

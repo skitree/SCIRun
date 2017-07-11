@@ -82,6 +82,7 @@ public:
   void addToDataDirectory(const QString& dir);
   void setCurrentFile(const QString& fileName);
   void addToolkit(const QString& filename, const QString& directory, const SCIRun::Dataflow::Networks::ToolkitFile& toolkit);
+  void addNetworkActionsToBar(QToolBar* toolbar) const;
 
   //TODO: extract another interface for command objects
   NetworkEditor* networkEditor() { return networkEditor_; }
@@ -97,6 +98,7 @@ public:
   int returnCode() const { return returnCode_; }
 
   QString mostRecentFile() const;
+  static const int clipboardKey = 125;
 public Q_SLOTS:
   void executeAll();
   void showZoomStatusMessage(int zoomLevel);
@@ -110,6 +112,7 @@ protected:
   virtual void keyReleaseEvent(QKeyEvent *event) override;
   virtual void showEvent(QShowEvent* event) override;
   virtual void hideEvent(QHideEvent* event) override;
+  void resizeEvent(QResizeEvent* event) override;
 private:
   static SCIRunMainWindow* instance_;
   SCIRunMainWindow();
@@ -134,8 +137,9 @@ private:
   QPushButton* versionButton_;
   TriggeredEventsWindow* triggeredEventsWindow_;
 
-  void createStandardToolbar();
+  void createStandardToolbars();
   void createExecuteToolbar();
+  void createAdvancedToolbar();
   void postConstructionSignalHookup();
   void executeCommandLineRequests();
   void setTipsAndWhatsThis();
@@ -162,6 +166,7 @@ private:
   void setupSubnetItem(QTreeWidgetItem* fave, bool addToMap, const QString& idFromMap);
   void showStatusMessage(const QString& str);
   void showStatusMessage(const QString& str, int timeInMsec);
+  void addFragmentsToMenu(const QMap<QString, QVariant>& names, const QMap<QString, QVariant>& xmls);
 
   enum { MaxRecentFiles = 5 }; //TODO: could be a user setting
   std::vector<QAction*> recentFileActions_;
@@ -171,6 +176,7 @@ private:
   int returnCode_ { 0 };
   QMap<QString,QMap<QString,QString>> styleSheetDetails_;
   QMap<QString, QAction*> currentModuleActions_;
+  QMap<QString, QMenu*> currentSubnetActions_;
   boost::shared_ptr<class DialogErrorControl> dialogErrorControl_;
   boost::shared_ptr<class NetworkExecutionProgressBar> networkProgressBar_;
   boost::shared_ptr<class GuiActionProvenanceConverter> commandConverter_;
@@ -179,6 +185,8 @@ private:
   bool skipSaveCheck_ = false;
   bool startup_;
   boost::shared_ptr<NetworkEditorBuilder> builder_;
+  int dockSpace_{0};
+  class DockManager* dockManager_;
 
 Q_SIGNALS:
   void moduleItemDoubleClicked();
@@ -202,6 +210,7 @@ private Q_SLOTS:
   void makePipesEuclidean();
   void makePipesCubicBezier();
   void makePipesManhattan();
+  void launchNewInstance();
   void filterDoubleClickedModuleSelectorItem(QTreeWidgetItem* item);
   void handleCheckedModuleEntry(QTreeWidgetItem* item, int column);
   void setExecutor(int type);
@@ -227,6 +236,9 @@ private Q_SLOTS:
   void resetWindowLayout();
   void zoomNetwork();
   void networkTimedOut();
+  void exportFragmentList();
+  void importFragmentList();
+  void clearFragmentList();
   void loadPythonAPIDoc();
   void showSnippetHelp();
   void showClipboardHelp();

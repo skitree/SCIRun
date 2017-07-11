@@ -75,7 +75,7 @@ namespace Gui {
         << new QAction("Help", parent)
         << new QAction("Edit Notes...", parent)
         << new QAction("Duplicate", parent)
-        << new QAction("Replace With", parent)
+        << new QAction("Replace With...", parent)
         //<< disabled(new QAction("Ignore*", parent))
         << new QAction("Show Log", parent)
         //<< disabled(new QAction("Make Sub-Network", parent))  // Issue #287
@@ -162,10 +162,18 @@ void ModuleWidgetDisplay::setupFrame(QStackedWidget* stacked)
 
 void ModuleWidgetDisplay::setupTitle(const QString& name)
 {
-  QFont titleFont(scirunModuleFontName(), titleFontSize, QFont::Bold);
+  auto hiDpi = ModuleWidget::highResolutionExpandFactor_ > 1;
+  auto fontSize = titleFontSize;
+  if (hiDpi)
+    fontSize--;
+  QFont titleFont(scirunModuleFontName(), fontSize, QFont::Bold);
+  if (hiDpi)
+    titleFont.setBold(false);
   titleLabel_->setFont(titleFont);
   titleLabel_->setText(name);
-  QFont smallerTitleFont(scirunModuleFontName(), titleFontSize - buttonPageFontSizeDiff);
+  if (hiDpi)
+    titleLabel_->setMinimumHeight(1.2 * titleLabel_->minimumHeight());
+  QFont smallerTitleFont(scirunModuleFontName(), fontSize - buttonPageFontSizeDiff);
   buttonGroup_->setFont(smallerTitleFont);
   buttonGroup_->setTitle(name);
   progressGroupBox_->setFont(smallerTitleFont);
@@ -206,6 +214,9 @@ void ModuleWidgetDisplay::setupIcons()
   getLogButton()->setIcon(QPixmap(":/general/Resources/new/modules/info.png"));
   getModuleActionButton()->setText("");
   getModuleActionButton()->setIcon(QPixmap(":/general/Resources/new/modules/settings.png"));
+
+  getSubnetButton()->setIcon(QPixmap(":/general/Resources/editSubnet.png"));
+  getSubnetButton()->setText("Edit");
 
   auto movie = new QMovie(":/general/Resources/executing.gif");
   executingLabel_->setMovie(movie);
@@ -262,6 +273,8 @@ void ModuleWidgetDisplay::setupSubnetWidgets()
 {
   getExecuteButton()->setVisible(false);
   getLogButton()->setVisible(false);
+  getHelpButton()->setVisible(false);
+
   subnetButton_->setMinimumWidth(50);
   auto layout = qobject_cast<QHBoxLayout*>(buttonGroup_->layout());
   if (layout)
@@ -331,6 +344,7 @@ ModuleWidget::ModuleWidget(NetworkEditor* ed, const QString& name, ModuleHandle 
   theModule_(theModule),
   previousModuleState_(UNSET),
   moduleId_(id(theModule)),
+  name_(name),
   dialog_(nullptr),
   dockable_(nullptr),
   dialogErrorControl_(dialogErrorControl),
@@ -454,21 +468,14 @@ void ModuleWidget::resizeBasedOnModuleName(ModuleWidgetDisplayBase* display, int
 {
   auto frame = this;
   int pixelWidth = display->getTitleWidth();
-  //qDebug() << moduleId_.c_str();
-  //qDebug() << "\tPixelwidth = " << pixelWidth;
   int extraWidth = pixelWidth - ModuleWidgetDisplayBase::moduleWidthThreshold;
-  //qDebug() << "\textraWidth = " << extraWidth;
   if (extraWidth > ModuleWidgetDisplayBase::extraWidthThreshold)
   {
-    //qDebug() << "\tGROWING MODULE Current width: " << frame->width();
     frame->resize(frame->width() + extraWidth + ModuleWidgetDisplayBase::extraModuleWidth, frame->height());
-    //qDebug() << "\tNew width: " << frame->width();
   }
   else
   {
-    //qDebug() << "\tSHRINKING MODULE Current width: " << frame->width();
     frame->resize(frame->width() - ModuleWidgetDisplayBase::smushFactor, frame->height());
-    //qDebug() << "\tNew width: " << frame->width();
   }
 }
 
@@ -525,8 +532,12 @@ void ModuleWidget::setupModuleActions()
   connect(this, SIGNAL(updateProgressBarSignal(double)), this, SLOT(updateProgressBar(double)));
   connect(actionsMenu_->getAction("Help"), SIGNAL(triggered()), this, SLOT(launchDocumentation()));
   connect(actionsMenu_->getAction("Duplicate"), SIGNAL(triggered()), this, SLOT(duplicate()));
-  if (isViewScene_ || theModule_->hasDynamicPorts()) //TODO: buggy combination, will disable for now. Fix is #1035
+  if (isViewScene_
+    || theModule_->hasDynamicPorts()  //TODO: buggy combination, will disable for now. Fix is #1035
+    || theModule_->get_id().name_ == "Subnet")
     actionsMenu_->getMenu()->removeAction(actionsMenu_->getAction("Duplicate"));
+  if (theModule_->get_id().name_ == "Subnet")
+    actionsMenu_->getMenu()->removeAction(actionsMenu_->getAction("Replace With..."));
 
   connectNoteEditorToAction(actionsMenu_->getAction("Notes"));
   connectUpdateNote(this);
@@ -534,12 +545,31 @@ void ModuleWidget::setupModuleActions()
 
 void ModuleWidget::postLoadAction()
 {
-  auto replaceWith = actionsMenu_->getAction("Replace With");
-  auto menu = new QMenu(this);
-  replaceWith->setMenu(menu);
-  fillReplaceWithMenu();
-  connect(this, SIGNAL(connectionAdded(const SCIRun::Dataflow::Networks::ConnectionDescription&)), this, SLOT(fillReplaceWithMenu()));
-  connect(this, SIGNAL(connectionDeleted(const SCIRun::Dataflow::Networks::ConnectionId&)), this, SLOT(fillReplaceWithMenu()));
+  auto replaceWith = actionsMenu_->getAction("Replace With...");
+  if (replaceWith)
+    connect(replaceWith, SIGNAL(triggered()), this, SLOT(showReplaceWithWidget()));
+}
+
+void ModuleWidget::showReplaceWithWidget()
+{
+#ifndef __APPLE__
+  replaceWithDialog_ = new QDialog;
+  replaceWithDialog_->setWindowTitle("Replace a module");
+  auto layout = new QHBoxLayout;
+  layout->addWidget(new QLabel("Replace " + name_ + " with:"));
+  auto button = new QPushButton("Choose a compatible module");
+  auto menu = new QMenu;
+  button->setMenu(menu);
+  fillReplaceWithMenu(menu);
+  layout->addWidget(button);
+  auto cancel = new QPushButton("Cancel");
+  connect(cancel, SIGNAL(clicked()), replaceWithDialog_, SLOT(reject()));
+  layout->addWidget(cancel);
+  replaceWithDialog_->setLayout(layout);
+  replaceWithDialog_->exec();
+#else
+  QMessageBox::information(nullptr, "Replace with disabled", "The replace with command is disabled on OSX until the Qt 5 upgrade is complete.");
+#endif
 }
 
 bool ModuleWidget::guiVisible() const
@@ -549,12 +579,11 @@ bool ModuleWidget::guiVisible() const
   return false;
 }
 
-void ModuleWidget::fillReplaceWithMenu()
+void ModuleWidget::fillReplaceWithMenu(QMenu* menu)
 {
-  if (deleting_)
+  if (deleting_ || networkBeingCleared_)
     return;
 
-  auto menu = getReplaceWithMenu();
   menu->clear();
   LOG_DEBUG("Filling menu for " << theModule_->get_module_name() << std::endl);
   auto replacements = Application::Instance().controller()->possibleReplacements(this->theModule_);
@@ -562,16 +591,13 @@ void ModuleWidget::fillReplaceWithMenu()
   fillMenuWithFilteredModuleActions(menu, Application::Instance().controller()->getAllAvailableModuleDescriptions(),
     isReplacement,
     [=](QAction* action) { QObject::connect(action, SIGNAL(triggered()), this, SLOT(replaceModuleWith())); },
-    fullWidgetDisplay_->getModuleActionButton());
-}
-
-QMenu* ModuleWidget::getReplaceWithMenu()
-{
-  return actionsMenu_->getAction("Replace With")->menu();
+    replaceWithDialog_);
 }
 
 void ModuleWidget::replaceModuleWith()
 {
+  delete replaceWithDialog_;
+  replaceWithDialog_ = nullptr;
   auto action = qobject_cast<QAction*>(sender());
   auto moduleToReplace = action->text();
   Q_EMIT replaceModuleWith(theModule_, moduleToReplace.toStdString());
@@ -733,7 +759,6 @@ void ModuleWidget::addOutputPortsToWidget(int index)
   }
   else
   {
-    qDebug() << "OOPS NO OUTPUT PORTS";
   }
 }
 
@@ -800,7 +825,6 @@ void ModuleWidget::addInputPortsToWidget(int index)
   }
   else
   {
-    qDebug() << "OOPS NO INPUT PORTS";
   }
 }
 
@@ -830,6 +854,7 @@ void PortWidgetManager::addPort(OutputPortWidget* port)
 void PortWidgetManager::addPort(InputPortWidget* port)
 {
   inputPorts_.push_back(port);
+  port->setSceneFunc(getScene_);
 }
 
 void PortWidgetManager::insertPort(int index, InputPortWidget* port)
@@ -838,6 +863,7 @@ void PortWidgetManager::insertPort(int index, InputPortWidget* port)
     inputPorts_.push_back(port);
   else
     inputPorts_.insert(inputPorts_.begin() + index, port);
+  port->setSceneFunc(getScene_);
 }
 
 void PortWidgetManager::setHighlightPorts(bool on)
@@ -960,7 +986,6 @@ ModuleWidget::NetworkClearingScope::~NetworkClearingScope()
 ModuleWidget::~ModuleWidget()
 {
   disconnect(this, SIGNAL(dynamicPortChanged(const std::string&, bool)), this, SLOT(updateDialogForDynamicPortChange(const std::string&, bool)));
-  disconnect(this, SIGNAL(connectionDeleted(const SCIRun::Dataflow::Networks::ConnectionId&)), this, SLOT(fillReplaceWithMenu()));
 
   if (!theModule_->isStoppable())
   {
@@ -1156,12 +1181,12 @@ void ModuleWidget::makeOptionsDialog()
 
       if (highResolutionExpandFactor_ > 1 && !isViewScene_)
       {
-        //qDebug() << "expand factor for dialogs:" << highResolutionExpandFactor_;
-        //qDebug() << dialog_->size();
         dialog_->setFixedHeight(dialog_->size().height() * highResolutionExpandFactor_);
         dialog_->setFixedWidth(dialog_->size().width() * (((highResolutionExpandFactor_ - 1) * 0.5) + 1));
-        //qDebug() << dialog_->size();
       }
+
+      if (highResolutionExpandFactor_ > 1 && isViewScene_)
+        dialog_->adjustToolbar();
 
       dialog_->pull();
     }
@@ -1179,6 +1204,7 @@ void ModuleWidget::updateDockWidgetProperties(bool isFloating)
   {
     dockable_->setWindowFlags(Qt::Window);
     dockable_->show();
+    Q_EMIT showUIrequested(dialog_);
   }
   dialog_->setButtonBarTitleVisible(!isFloating);
 }
@@ -1218,6 +1244,7 @@ void ModuleWidget::toggleOptionsDialog()
     if (dockable_->isHidden())
     {
       dockable_->show();
+      Q_EMIT showUIrequested(dialog_);
       dockable_->raise();
       dockable_->activateWindow();
       if (isViewScene_)
@@ -1310,7 +1337,10 @@ bool ModuleWidget::hasDynamicPorts() const
 void ModuleWidget::pinUI()
 {
   if (dockable_)
+  {
     dockable_->setFloating(false);
+    Q_EMIT showUIrequested(dialog_);
+  }
 }
 
 void ModuleWidget::hideUI()
@@ -1322,7 +1352,11 @@ void ModuleWidget::hideUI()
 void ModuleWidget::showUI()
 {
   if (dockable_)
+  {
     dockable_->show();
+    dialog_->expand();
+    Q_EMIT showUIrequested(dialog_);
+  }
 }
 
 void ModuleWidget::collapsePinnedDialog()
@@ -1376,8 +1410,6 @@ void ModuleWidget::stopButtonPushed()
 {
   Q_EMIT interrupt(theModule_->get_id());
 }
-
-bool ModuleWidget::globalMiniMode_(false);
 
 void ModuleWidget::movePortWidgets(int oldIndex, int newIndex)
 {

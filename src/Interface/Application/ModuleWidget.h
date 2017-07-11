@@ -151,9 +151,9 @@ public:
   int portSpacing() const;
   void setPortSpacing(bool highlighted);
 
-  virtual boost::signals2::connection connectExecuteBegins(const SCIRun::Dataflow::Networks::ExecuteBeginsSignalType::slot_type& subscriber) override final;
-  virtual boost::signals2::connection connectExecuteEnds(const SCIRun::Dataflow::Networks::ExecuteEndsSignalType::slot_type& subscriber) override final;
-  virtual boost::signals2::connection connectErrorListener(const SCIRun::Dataflow::Networks::ErrorSignalType::slot_type& subscriber) override final;
+  boost::signals2::connection connectExecuteBegins(const SCIRun::Dataflow::Networks::ExecuteBeginsSignalType::slot_type& subscriber) override final;
+  boost::signals2::connection connectExecuteEnds(const SCIRun::Dataflow::Networks::ExecuteEndsSignalType::slot_type& subscriber) override final;
+  boost::signals2::connection connectErrorListener(const SCIRun::Dataflow::Networks::ErrorSignalType::slot_type& subscriber) override final;
 
   void updateNoteFromFile(const Note& note);
 
@@ -174,7 +174,7 @@ public:
   void setupPortSceneCollaborator(QGraphicsProxyWidget* proxy);
 
 public Q_SLOTS:
-  virtual bool executeWithSignals() override;
+  bool executeWithSignals() override;
   void toggleOptionsDialog();
   void setLogButtonColor(const QColor& color);
   void resetLogButtonColor();
@@ -224,6 +224,7 @@ Q_SIGNALS:
   void executionDisabled(bool disabled);
   void findInNetwork();
   void showSubnetworkEditor(const QString& name);
+  void showUIrequested(class ModuleDialogGeneric* dialog);
 private Q_SLOTS:
   void subnetButtonClicked();
   void updateBackgroundColorForModuleState(int moduleState);
@@ -233,7 +234,6 @@ private Q_SLOTS:
   void executeTriggeredProgrammatically(bool upstream);
   void stopButtonPushed();
   void colorOptionsButton(bool visible);
-  void fillReplaceWithMenu();
   void replaceModuleWith();
   void updateDialogForDynamicPortChange(const std::string& portName, bool adding);
   void handleDialogFatalError(const QString& message);
@@ -241,6 +241,7 @@ private Q_SLOTS:
   void changeExecuteButtonToStop();
   void updateDockWidgetProperties(bool isFloating);
   void incomingConnectionStateChanged(bool disabled, int index);
+  void showReplaceWithWidget();
 protected:
   virtual void enterEvent(QEvent* event) override;
   virtual void leaveEvent(QEvent* event) override;
@@ -252,6 +253,7 @@ private:
   bool executedOnce_, skipExecuteDueToFatalError_, disabled_;
   std::atomic<bool> errored_;
   int previousPageIndex_ {0};
+  QDialog* replaceWithDialog_{ nullptr };
 
   SCIRun::Dataflow::Networks::ModuleHandle theModule_;
   std::atomic<int> previousModuleState_;
@@ -263,6 +265,7 @@ private:
   void setupDisplayConnections(ModuleWidgetDisplayBase* display);
   void resizeBasedOnModuleName(ModuleWidgetDisplayBase* display, int index);
   std::string moduleId_;
+  QString name_;
   class ModuleDialogGeneric* dialog_;
   QDockWidget* dockable_;
   void makeOptionsDialog();
@@ -273,9 +276,9 @@ private:
   void adjustDockState(bool dockEnabled);
   Qt::DockWidgetArea allowedDockArea() const;
   void printInputPorts(const SCIRun::Dataflow::Networks::ModuleInfoProvider& moduleInfoProvider) const;
-  QMenu* getReplaceWithMenu();
   void setInputPortSpacing(bool highlighted);
   void setOutputPortSpacing(bool highlighted);
+  void fillReplaceWithMenu(QMenu* menu);
 
   class ModuleLogWindow* logWindow_;
   boost::scoped_ptr<class ModuleActionsMenu> actionsMenu_;
@@ -301,8 +304,6 @@ private:
   boost::shared_ptr<class ConnectionFactory> connectionFactory_;
   boost::shared_ptr<class ClosestPortFinder> closestPortFinder_;
 
-  static bool globalMiniMode_;
-
   friend class ::PortBuilder;
 };
 
@@ -313,9 +314,11 @@ public:
   SubnetWidget(NetworkEditor* ed, const QString& name, Dataflow::Networks::ModuleHandle theModule, boost::shared_ptr<DialogErrorControl> dialogErrorControl, QWidget* parent = nullptr);
   ~SubnetWidget();
   void postLoadAction() override;
+  void deleteSubnetImmediately() { deleteSubnetImmediately_ = true; }
 private:
   NetworkEditor* editor_;
   QString name_;
+  bool deleteSubnetImmediately_{ false };
 };
 
 class SubnetPortsBridgeWidget : public QWidget
@@ -323,9 +326,12 @@ class SubnetPortsBridgeWidget : public QWidget
 	Q_OBJECT
 public:
   SubnetPortsBridgeWidget(NetworkEditor* ed, const QString& name, QWidget* parent = nullptr);
+  void addPort(PortWidget* port) { ports_.push_back(port); }
+  const std::vector<PortWidget*>& ports() const { return ports_; }
 private:
   NetworkEditor* editor_;
   QString name_;
+  std::vector<PortWidget*> ports_;
 };
 
 }

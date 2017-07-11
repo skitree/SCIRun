@@ -205,14 +205,14 @@ namespace SCIRun
       {
         deleteAction_ = addAction(deleteAction);
         addWidgetToExecutionDisableList(deleteAction_);
-        insertAction_ = addAction(insertModuleAction);
-        addWidgetToExecutionDisableList(insertAction_);
-
-
-        auto insertable = new QMenu;
-        fillInsertModuleMenu(insertable, Application::Instance().controller()->getAllAvailableModuleDescriptions(), conn->connectedPorts().first, conn);
-        insertAction_->setMenu(insertable);
-
+        if (!eitherPortDynamic(conn->connectedPorts()))
+        {
+          insertAction_ = addAction(insertModuleAction);
+          addWidgetToExecutionDisableList(insertAction_);
+          auto insertable = new QMenu;
+          fillInsertModuleMenu(insertable, Application::Instance().controller()->getAllAvailableModuleDescriptions(), conn->connectedPorts().first, conn);
+          insertAction_->setMenu(insertable);
+        }
         disableAction_ = addAction(disableEnableAction);
         addWidgetToExecutionDisableList(disableAction_);
         notesAction_ = addAction(editNotesAction);
@@ -220,13 +220,20 @@ namespace SCIRun
       ~ConnectionMenu()
       {
         removeWidgetFromExecutionDisableList(deleteAction_);
-        removeWidgetFromExecutionDisableList(insertAction_);
+        if (insertAction_)
+          removeWidgetFromExecutionDisableList(insertAction_);
         removeWidgetFromExecutionDisableList(disableAction_);
       }
-      QAction* notesAction_;
-      QAction* deleteAction_;
-      QAction* disableAction_;
-      QAction* insertAction_;
+      QAction* notesAction_{ nullptr };
+      QAction* deleteAction_{ nullptr };
+      QAction* disableAction_{ nullptr };
+      QAction* insertAction_{ nullptr };
+
+    private:
+      bool eitherPortDynamic(const std::pair<PortWidget*, PortWidget*>& ports) const
+      {
+        return ports.first->isDynamic() || ports.second->isDynamic();
+      }
     };
   }
 }
@@ -373,7 +380,31 @@ void ConnectionLine::trackNodes()
 
 void ConnectionLine::addSubnetCompanion(PortWidget* subnetPort)
 {
-  qDebug() << id().id_.c_str() << "setup companion with" << subnetPort;
+  setVisible(false);
+  ConnectionFactory f(subnetPort->sceneFunc());
+
+  auto out = subnetPort->isInput() ? fromPort_ : subnetPort;
+  auto in = subnetPort->isInput() ? subnetPort : toPort_;
+
+  ConnectionDescription cd{ { out->getUnderlyingModuleId(), out->id() }, { in->getUnderlyingModuleId(), in->id() } };
+  subnetCompanion_ = f.makeFinishedConnection(out, in, ConnectionId::create(cd));
+
+  connect(subnetPort, SIGNAL(portMoved()), subnetCompanion_, SLOT(trackNodes()));
+
+  subnetCompanion_->isCompanion_ = true;
+  subnetCompanion_->trackNodes();
+  subnetCompanion_->setVisible(true);
+}
+
+void ConnectionLine::deleteCompanion()
+{
+  if (subnetCompanion_)
+  {
+    subnetCompanion_->blockSignals(true);
+    scene()->removeItem(subnetCompanion_);
+    delete subnetCompanion_;
+    subnetCompanion_ = nullptr;
+  }
 }
 
 void ConnectionLine::setDrawStrategy(ConnectionDrawStrategyPtr cds)
@@ -521,6 +552,7 @@ void DataInfoDialog::show(PortDataDescriber portDataDescriber, const QString& la
   msgBox->addButton(viewButton, QMessageBox::HelpRole);
 #endif
 
+  msgBox->setDetailedText("The above datatype info is displayed for the current run only. Hit i again after executing to display updated info. Keep this window open to compare info between runs.");
   msgBox->setWindowTitle(label + " Data info: " + QString::fromStdString(id));
   msgBox->setText(info);
   msgBox->setModal(false);
@@ -531,6 +563,7 @@ void ConnectionLine::keyPressEvent(QKeyEvent* event)
 {
   if (event->key() == Qt::Key_I)
     DataInfoDialog::show(fromPort_->getPortDataDescriber(), "Connection", id_.id_);
+  QGraphicsPathItem::keyPressEvent(event);
 }
 
 ConnectionInProgressStraight::ConnectionInProgressStraight(PortWidget* port, ConnectionDrawStrategyPtr drawer)
@@ -587,6 +620,10 @@ ConnectionFactory::ConnectionFactory(QGraphicsProxyWidget* module) :
   module_(module)
 {}
 
+ConnectionFactory::ConnectionFactory(SceneFunc func) :
+  func_(func)
+{}
+
 bool ConnectionFactory::visible_(true);
 ConnectionDrawType ConnectionFactory::currentType_(ConnectionDrawType::EUCLIDEAN);
 ConnectionDrawStrategyPtr ConnectionFactory::euclidean_(new EuclideanDrawStrategy);
@@ -628,13 +665,24 @@ ConnectionInProgress* ConnectionFactory::makePotentialConnection(PortWidget* por
   return conn;
 }
 
+QGraphicsScene* ConnectionFactory::getScene() const
+{
+  if (module_)
+    return module_->scene();
+  else if (func_ && func_())
+    return func_();
+
+  qDebug() << "No graphics scene getter available!";
+  return nullptr;
+}
 
 void ConnectionFactory::activate(QGraphicsItem* item) const
 {
   if (item)
   {
-    if (module_)
-      module_->scene()->addItem(item);
+    auto scene = getScene();
+    if (scene)
+      scene->addItem(item);
     item->setVisible(visible_);
   }
 }

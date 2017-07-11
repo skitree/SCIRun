@@ -289,7 +289,6 @@ void PortWidget::doMousePress(Qt::MouseButton button, const QPointF& pos)
   }
   else
   {
-    //qDebug() << "mouse press sth else";
   }
 }
 
@@ -308,7 +307,6 @@ QGraphicsItem* PortWidget::doMouseMove(Qt::MouseButtons buttons, const QPointF& 
   }
   else
   {
-    //qDebug() << "mouse move sth else";
   }
   return nullptr;
 }
@@ -341,7 +339,6 @@ void PortWidget::doMouseRelease(Qt::MouseButton button, const QPointF& pos, Qt::
   }
   else
   {
-    //qDebug() << "mouse release sth else";
   }
 }
 
@@ -472,7 +469,7 @@ void PortWidget::tryConnectPort(const QPointF& pos, PortWidget* port, double thr
   int distance = (pos - port->position()).manhattanLength();     //GUI concern: needs unit test
   if (distance <= threshold)                 //GUI concern: needs unit test
   {
-    Q_EMIT requestConnection(this, port);
+    Q_EMIT requestConnection(getRealPort(), port->getRealPort());
   }
 }
 
@@ -482,7 +479,12 @@ void PortWidget::connectToSubnetPort(PortWidget* subnetPort)
   auto in = isInput_ ? this : subnetPort;
 
   ConnectionDescription cd { { out->moduleId_, out->portId_ }, { in->moduleId_, in->portId_ } };
-  connectionFactory_()->makeFinishedConnection(out, in, ConnectionId::create(cd));
+  if (connectionFactory_ && connectionFactory_())
+    connectionFactory_()->makeFinishedConnection(out, in, ConnectionId::create(cd));
+  else
+  {
+    qDebug() << "NO CONNECTION FACTORY AVAILABLE!!";
+  }
   //TODO: position provider needs adjustment
   //TODO: management of return value?
 }
@@ -601,7 +603,7 @@ void PortWidget::forEachPort(Func func, Pred pred)
 
 void PortWidget::makePotentialConnectionLine(PortWidget* other)
 {
-  if (getScene_() != other->getScene_())
+  if (other && getScene_ && other->getScene_ && getScene_() != other->getScene_())
     return;
 
   auto potentials = potentialConnectionsMap_[this];

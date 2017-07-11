@@ -66,6 +66,7 @@ namespace SCIRun {
         Dataflow::Networks::ModuleStateHandle state,
         QWidget* parent = nullptr);
 
+      void adjustToolbar() override;
     Q_SIGNALS:
       void newGeometryValueForwarder();
       void mousePressSignalForTestingGeometryObjectFeedback(int x, int y, const std::string& selName);
@@ -141,6 +142,13 @@ namespace SCIRun {
       void toggleLight3(bool value);
       void resizingDone();
 
+      void lockRotationToggled();
+      void lockPanningToggled();
+      void lockZoomToggled();
+      void lockAllTriggered();
+      void unlockAllTriggered();
+      void toggleLockColor(bool locked);
+
     protected:
       void mousePressEvent(QMouseEvent* event) override;
       void mouseReleaseEvent(QMouseEvent* event) override;
@@ -179,6 +187,8 @@ namespace SCIRun {
       void addAutoViewButton();
       void addScreenshotButton();
       void addViewBarButton();
+      void addControlLockButton();
+      void addToolbarButton(QPushButton* button);
       void addViewBar();
       void addViewOptions();
       void addConfigurationButton();
@@ -239,6 +249,11 @@ namespace SCIRun {
       Modules::Visualization::TextBuilder textBuilder_;
       Graphics::Datatypes::GeometryHandle scaleBarGeom_;
       std::vector<Graphics::Datatypes::GeometryHandle> clippingPlaneGeoms_;
+      QAction* lockRotation_;
+      QAction* lockPan_;
+      QAction* lockZoom_;
+      QPushButton* controlLock_;
+      QPushButton* autoViewButton_;
 
       friend class ViewSceneControlsDock;
 
