@@ -79,7 +79,8 @@ NetworkEditor::NetworkEditor(const NetworkEditorParameters& params, QWidget* par
   zLevelManager_(new ZLevelManager(scene_))
 {
   setBackgroundBrush(QPixmap(":/general/Resources/SCIgrid-small.png"));
-  ModuleWidget::highResolutionExpandFactor_ = highResolutionExpandFactor_;
+ 
+  setHighResolutionExpandFactor(highResolutionExpandFactor_);
 
   setScene(scene_);
   setDragMode(RubberBandDrag);
@@ -107,6 +108,12 @@ NetworkEditor::NetworkEditor(const NetworkEditorParameters& params, QWidget* par
   setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
   verticalScrollBar()->setValue(0);
   horizontalScrollBar()->setValue(0);
+}
+
+void  NetworkEditor::setHighResolutionExpandFactor(double factor)
+{ 
+  highResolutionExpandFactor_ = factor; 
+  ModuleWidget::highResolutionExpandFactor_ = highResolutionExpandFactor_;
 }
 
 void NetworkEditor::setNetworkEditorController(boost::shared_ptr<NetworkEditorControllerGuiProxy> controller)
@@ -427,6 +434,7 @@ ModuleProxyWidget* NetworkEditor::setupModuleWidget(ModuleWidget* module)
   connect(proxy, SIGNAL(tagChanged(int)), this, SLOT(highlightTaggedItem(int)));
 
   proxy->setDefaultNotePosition(defaultNotePositionGetter_->position());
+  proxy->setDefaultNoteSize(defaultNotePositionGetter_->size());
   proxy->createPortPositionProviders();
   proxy->highlightPorts(Preferences::Instance().highlightPorts ? 1 : 0);
 

@@ -167,8 +167,6 @@ SCIRunMainWindow::SCIRunMainWindow()
   scrollArea_->viewport()->setAutoFillBackground(true);
   scrollArea_->setStyleSheet(styleSheet());
 
-  //setDockOptions(AnimatedDocks | AllowTabbedDocks);
-
   connect(actionSave_As_, SIGNAL(triggered()), this, SLOT(saveNetworkAs()));
   connect(actionSave_, SIGNAL(triggered()), this, SLOT(saveNetwork()));
   connect(actionLoad_, SIGNAL(triggered()), this, SLOT(loadNetwork()));
@@ -543,15 +541,15 @@ void SCIRunMainWindow::setupNetworkEditor()
   //TODO: this logger will crash on Windows when the console is closed. See #1250. Need to figure out a better way to manage scope/lifetime of Qt widgets passed to global singletons...
   //boost::shared_ptr<TextEditAppender> moduleLog(new TextEditAppender(moduleLogTextBrowser_));
   //Log::get("Modules").addCustomAppender(moduleLog);
-  defaultNotePositionGetter_.reset(new ComboBoxDefaultNotePositionGetter(*prefsWindow_->defaultNotePositionComboBox_));
+  defaultNotePositionGetter_.reset(new ComboBoxDefaultNotePositionGetter(prefsWindow_->defaultNotePositionComboBox_, prefsWindow_->defaultNoteSizeComboBox_));
   auto tagColorFunc = [this](int tag) { return tagManagerWindow_->tagColor(tag); };
   auto tagNameFunc = [this](int tag) { return tagManagerWindow_->tagName(tag); };
 	auto preexecuteFunc = [this]() { preexecute(); };
   auto highResolutionExpandFactor = Core::Application::Instance().parameters()->developerParameters()->guiExpandFactor().get_value_or(1.0);
   {
     auto screen = QApplication::desktop()->screenGeometry();
-    if (screen.height() * screen.width() > 5000000)
-      highResolutionExpandFactor = 1.7;
+    if (screen.height() * screen.width() > 4096000) // 2560x1600
+      highResolutionExpandFactor = NetworkBoundaries::highDPIExpandFactorDefault;
   }
   networkEditor_ = new NetworkEditor({ getter, defaultNotePositionGetter_, dialogErrorControl_, preexecuteFunc,
     tagColorFunc, tagNameFunc, highResolutionExpandFactor, dockManager_ }, scrollAreaWidgetContents_);
@@ -663,6 +661,12 @@ bool SCIRunMainWindow::loadNetworkFile(const QString& filename, bool isTemporary
         statusBar()->showMessage(tr("File loaded: ") + filename, 2000);
         provenanceWindow_->clear();
         provenanceWindow_->showFile(command.file_);
+      }
+      else
+      {
+        setCurrentFile("");
+        setWindowModified(true);
+        showStatusMessage("Toolkit network loaded. ", 2000);
       }
 			networkEditor_->viewport()->update();
       return true;
@@ -1737,7 +1741,7 @@ void SCIRunMainWindow::adjustModuleDock(int state)
 {
   bool dockable = prefsWindow_->dockableModulesCheckBox_->isChecked();
   actionPinAllModuleUIs_->setEnabled(dockable);
-  Preferences::Instance().modulesAreDockable.setValue(dockable);
+  Preferences::Instance().modulesAreDockable.setValueWithSignal(dockable);
 }
 
 void SCIRunMainWindow::showEvent(QShowEvent* event)
