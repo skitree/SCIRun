@@ -49,7 +49,6 @@ class PythonConsoleWidget : public QDockWidget
 
 public:
   explicit PythonConsoleWidget(class NetworkEditor* rootNetworkEditor, QWidget* parent = nullptr);
-  virtual ~PythonConsoleWidget();
 
 public Q_SLOTS:
   void showBanner();
