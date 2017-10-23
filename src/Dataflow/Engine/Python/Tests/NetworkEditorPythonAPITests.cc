@@ -263,3 +263,12 @@ TEST_F(PythonControllerFunctionalTests, CanDisconnectModulesWithStaticFunction)
 
   ASSERT_EQ(0, controller.getNetwork()->nconnections());
 }
+
+TEST(PyBindTests, Foo)
+{
+
+
+
+
+  FAIL() << "todo";
+}
