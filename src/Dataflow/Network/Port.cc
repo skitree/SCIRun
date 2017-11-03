@@ -39,6 +39,7 @@
 
 using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Core::Datatypes;
+using namespace SCIRun::Core::Logging;
 
 Port::Port(ModuleInterface* module, const ConstructionParams& params)
   : module_(module), index_(0), id_(params.id_), typeName_(params.type_name), portName_(params.port_name), colorName_(PortColorLookup::toColor(params.type_name))
@@ -63,7 +64,7 @@ void Port::detach(Connection* conn)
   auto pos = std::find(connections_.begin(), connections_.end(), conn);
   if (pos == connections_.end())
   {
-    LOG_DEBUG(id() << " Port::detach: Connection not found" << std::endl);
+    LOG_DEBUG("{} Port::detach: Connection not found", id().toString());
   }
   connections_.erase(pos);
 }
@@ -96,6 +97,11 @@ ModuleId Port::getUnderlyingModuleId() const
 size_t Port::getIndex() const
 {
   return index_;
+}
+
+ModuleStateHandle Port::moduleState() const
+{
+  return module_->get_state();
 }
 
 InputPort::InputPort(ModuleInterface* module, const ConstructionParams& params, DatatypeSinkInterfaceHandle sink)
@@ -173,6 +179,20 @@ void InputPort::resendNewDataSignal()
   sink()->forceFireDataHasChanged();
 }
 
+boost::optional<std::string> InputPort::connectedModuleId() const
+{
+  if (connections_.empty())
+    return boost::none;
+  return connections_[0]->oport_->getUnderlyingModuleId().id_;
+}
+
+ModuleStateHandle InputPort::stateFromConnectedModule() const
+{
+  if (connections_.empty())
+    return nullptr;
+  return connections_[0]->oport_->moduleState();
+}
+
 OutputPort::OutputPort(ModuleInterface* module, const ConstructionParams& params, DatatypeSourceInterfaceHandle source)
   : Port(module, params), source_(source)
 {
@@ -205,7 +225,7 @@ bool OutputPort::hasData() const
   if (!source_)
     return false;
   auto ret = source_->hasData();
-  LOG_DEBUG(id() << " OutputPort::hasData returns " << ret << std::endl);
+  LOG_DEBUG("{} OutputPort::hasData returns {}", id().toString(), ret);
   return ret;
 }
 

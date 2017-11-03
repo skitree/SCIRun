@@ -49,27 +49,6 @@ void TextEditAppender::log(const QString& message) const
   text_->verticalScrollBar()->setValue(text_->verticalScrollBar()->maximum());
 }
 
-void TextEditAppender::error(const std::string& msg) const
-{
-  Log::get() << ERROR_LOG << msg << std::endl;
-}
-
-void TextEditAppender::warning(const std::string& msg) const
-{
-  Log::get() << WARN << msg << std::endl;
-}
-
-void TextEditAppender::remark(const std::string& msg) const
-{
-  Log::get() << NOTICE << msg << std::endl;
-}
-
-void TextEditAppender::status(const std::string& msg) const
-{
-  auto level = regressionMode_ ? INFO : DEBUG_LOG;
-  Log::get() << level << msg << std::endl;
-}
-
 void TextEditAppender::log4(const std::string& message) const
 {
   log(QString::fromStdString(message));
@@ -381,6 +360,7 @@ void NetworkEditorBuilder::connectAll(NetworkEditor* editor)
   // for any network editor
   QObject::connect(editor, SIGNAL(modified()), mainWindow_, SLOT(networkModified()));
   QObject::connect(mainWindow_, SIGNAL(defaultNotePositionChanged(NotePosition)), editor, SIGNAL(defaultNotePositionChanged(NotePosition)));
+  QObject::connect(mainWindow_, SIGNAL(defaultNoteSizeChanged(int)), editor, SIGNAL(defaultNoteSizeChanged(int)));
 
   // for active network editor
   QObject::connect(mainWindow_->actionSelectAll_, SIGNAL(triggered()), editor, SLOT(selectAll()));
@@ -440,4 +420,16 @@ int DockManager::usedSpace() const
 {
   return std::accumulate(currentDialogs_.begin(), currentDialogs_.end(), 0,
     [](int height, ModuleDialogGeneric* d) { return height + (d->isCollapsed() ? 0 : d->size().height()); });
+}
+
+QString SCIRun::Gui::networkBackgroundImage()
+{
+  auto date = QDate::currentDate();
+  if (12 == date.month() && 20 < date.day() && date.day() < 28)
+    return ":/general/Resources/ski.png";
+  if (11 == date.month() && 20 < date.day() && date.day() < 31)
+    return ":/general/Resources/turkey.png";
+  if (10 == date.month() && 31 == date.day())
+    return ":/general/Resources/pumpkin.png";
+  return ":/general/Resources/SCIgrid-small.png";
 }

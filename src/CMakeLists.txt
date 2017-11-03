@@ -365,6 +365,24 @@ IF(WITH_TETGEN)
 ENDIF()
 
 ########################################################################
+# Configure ospray module build-- TODO: convert into real external
+
+OPTION(WITH_OSPRAY "Build with Ospray support." OFF)
+MARK_AS_ADVANCED(WITH_OSPRAY)
+IF(WITH_OSPRAY)
+  ADD_DEFINITIONS(-DWITH_OSPRAY)
+ENDIF()
+
+########################################################################
+# Detailed renderer logging
+
+OPTION(RENDERER_TRACE_ON "Enable detailed renderer logging." OFF)
+MARK_AS_ADVANCED(RENDERER_TRACE_ON)
+IF(RENDERER_TRACE_ON)
+  ADD_DEFINITIONS(-DRENDERER_TRACE_ON)
+ENDIF()
+
+########################################################################
 # Copy Spire-SCIRun specific assets and shaders
 
 set(OUTPUT_SHADER_DIR ${CMAKE_CURRENT_BINARY_DIR}/Shaders)
@@ -492,11 +510,10 @@ INCLUDE_DIRECTORIES(
   ${SCIRun_BINARY_DIR}/
   ${SCIRun_BINARY_DIR}/include
   ${SCIRun_SOURCE_DIR}/Externals/eigen
-  # TODO: set up include variable in log4cpp project
-  ${SCIRun_SOURCE_DIR}/Externals/log4cpp/include
   ${SCI_TEEM_INCLUDE}
   ${SCI_ZLIB_INCLUDE}
   ${GLM_DIR}
+  ${SPDLOG_DIR}/include
   ${SCI_TNY_INCLUDE}
   ${SCI_LODEPNG_INCLUDE}
 )
@@ -640,6 +657,7 @@ SET_PROPERTY(TARGET Algorithms_Math         PROPERTY FOLDER "Core/Algorithms")
 SET_PROPERTY(TARGET Algorithms_Field         PROPERTY FOLDER "Core/Algorithms")
 SET_PROPERTY(TARGET Algorithms_Describe         PROPERTY FOLDER "Core/Algorithms")
 SET_PROPERTY(TARGET Algorithms_BrainStimulator         PROPERTY FOLDER "Core/Algorithms")
+SET_PROPERTY(TARGET Algorithms_Legacy_Inverse         PROPERTY FOLDER "Core/Algorithms")
 SET_PROPERTY(TARGET Algorithms_Factory   PROPERTY FOLDER "Core/Algorithms")
 SET_PROPERTY(TARGET Core_Algorithms_Legacy_Fields         PROPERTY FOLDER "Core/Algorithms")
 SET_PROPERTY(TARGET Core_Algorithms_Legacy_Forward         PROPERTY FOLDER "Core/Algorithms")
@@ -741,7 +759,7 @@ SET_PROPERTY(TARGET Testing_Utils PROPERTY FOLDER "Testing Support")
 SET_PROPERTY(TARGET Testing_ModuleTestBase PROPERTY FOLDER "Testing Support")
 
 IF(BUILD_TESTING)
- 
+
   #SET_PROPERTY(TARGET SCIRunTestData_external   PROPERTY FOLDER "Testing Support")
 
   SET_PROPERTY(TARGET Algorithms_Base_Tests   PROPERTY FOLDER "Core/Algorithms/Tests")
@@ -807,7 +825,6 @@ IF(BUILD_TESTING)
   ENDIF()
 ENDIF()
 
-SET_PROPERTY(TARGET ${SCI_LOG4CPP_LIBRARY} PROPERTY FOLDER "Externals")
 SET_PROPERTY(TARGET cleaver PROPERTY FOLDER "Externals")
 SET_PROPERTY(TARGET xml2 PROPERTY FOLDER "Externals")
 

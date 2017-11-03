@@ -80,8 +80,13 @@ void HasNotes::setCurrentNote(const Note& note, bool updateEditor)
   }
 }
 
+void HasNotes::setDefaultNoteFontSize(int size)
+{
+  noteEditor_.setDefaultNoteFontSize(size);
+}
+
 NoteDisplayHelper::NoteDisplayHelper(NoteDisplayStrategyPtr display) :
-  item_(nullptr), scene_(nullptr), note_(nullptr),
+  networkObjectWithNote_(nullptr), scene_(nullptr), note_(nullptr),
   notePosition_(Default),
   defaultNotePosition_(Top), //TODO
   displayStrategy_(display),
@@ -113,7 +118,9 @@ void NoteDisplayHelper::updateNoteImpl(const Note& note)
   {
     setNoteGraphicsContext();
     if (!scene_)
-      Log::get() << WARN << "Scene not set, network notes will not be displayed!" << std::endl;
+      GeneralLog::Instance().get()->warn("Scene not set, network notes will not be displayed.");
+    note_ = new QGraphicsTextItem("", nullptr, scene_);
+      
     note_ = new QGraphicsTextItem("");
     note_->setDefaultTextColor(Qt::white);
   }
@@ -121,7 +128,7 @@ void NoteDisplayHelper::updateNoteImpl(const Note& note)
   note_->setHtml(note.html_);
   notePosition_ = note.position_;
   updateNotePosition();
-  note_->setZValue(item_->zValue() - 1);
+  note_->setZValue(networkObjectWithNote_->zValue() - 1);
 }
 
 void NoteDisplayHelper::clearNoteCursor()
@@ -136,13 +143,13 @@ void NoteDisplayHelper::clearNoteCursor()
 
 QPointF NoteDisplayHelper::relativeNotePosition()
 {
-  if (note_ && item_)
+  if (note_ && networkObjectWithNote_)
   {
     auto position = notePosition_ == Default ? defaultNotePosition_ : notePosition_;
     note_->setVisible(!(Tooltip == position || None == position));
-    item_->setToolTip("");
+    networkObjectWithNote_->setToolTip("");
 
-    return displayStrategy_->relativeNotePosition(item_, note_, position);
+    return displayStrategy_->relativeNotePosition(networkObjectWithNote_, note_, position);
   }
   return QPointF();
 }
@@ -155,26 +162,15 @@ void NoteDisplayHelper::setDefaultNotePositionImpl(NotePosition position)
 
 void NoteDisplayHelper::setDefaultNoteSizeImpl(int size)
 {
-  defaultNoteSize_ = size;
-  updateNoteSize();
+  defaultNoteFontSize_ = size;
 }
 
 void NoteDisplayHelper::updateNotePosition()
 {
-  if (note_ && item_)
+  if (note_ && networkObjectWithNote_)
   {
     auto position = positioner_->currentPosition() + relativeNotePosition();
     note_->setPos(position);
-  }
-}
-
-void NoteDisplayHelper::updateNoteSize()
-{
-  if (note_ && item_)
-  {
-    qDebug() << note_ << item_ << note_->font() << note_->font().pointSizeF() << defaultNoteSize_;
-    //auto position = positioner_->currentPosition() + relativeNotePosition();
-    //note_->setPos(position);
   }
 }
 

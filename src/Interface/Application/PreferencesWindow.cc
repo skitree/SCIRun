@@ -34,8 +34,10 @@
 #include <Core/Logging/Log.h>
 
 using namespace SCIRun::Gui;
+using namespace SCIRun::Core::Logging;
 
-PreferencesWindow::PreferencesWindow(NetworkEditor* editor, QWidget* parent /* = 0 */) : QDialog(parent), networkEditor_(editor)
+PreferencesWindow::PreferencesWindow(NetworkEditor* editor, std::function<void()> writeSettings,
+  QWidget* parent /* = 0 */) : QDialog(parent), networkEditor_(editor), writeSettings_(writeSettings)
 {
   setupUi(this);
   connect(saveBeforeExecuteCheckBox_, SIGNAL(stateChanged(int)), this, SLOT(updateSaveBeforeExecuteOption(int)));
@@ -48,25 +50,25 @@ PreferencesWindow::PreferencesWindow(NetworkEditor* editor, QWidget* parent /* =
 void PreferencesWindow::updateModuleErrorDialogOption(int state)
 {
   SCIRun::Core::Preferences::Instance().showModuleErrorDialogs.setValueWithSignal(state == 0);
-  LOG_DEBUG("showModuleErrorDialogs is " << (state == 0));
+  LOG_DEBUG("showModuleErrorDialogs is {}", (state == 0));
 }
 
 void PreferencesWindow::updateSaveBeforeExecuteOption(int state)
 {
   SCIRun::Core::Preferences::Instance().saveBeforeExecute.setValue(state != 0);
-  LOG_DEBUG("saveBeforeExecute is " << (state != 0));
+  LOG_DEBUG("saveBeforeExecute is {}", (state != 0));
 }
 
 void PreferencesWindow::updateAutoNotesState(int state)
 {
   SCIRun::Core::Preferences::Instance().autoNotes.setValue(state != 0);
-  LOG_DEBUG("autoNotes is " << (state != 0));
+  LOG_DEBUG("autoNotes is {}", (state != 0));
 }
 
 void PreferencesWindow::updateHighDPIAdjust(int state)
 {
   SCIRun::Core::Preferences::Instance().highDPIAdjustment.setValue(state != 0);
-  LOG_DEBUG("highDPIAdjustment is " << (state != 0));
+  LOG_DEBUG("highDPIAdjustment is {}", (state != 0));
 }
 
 void PreferencesWindow::setSaveBeforeExecute(bool mode)
@@ -90,7 +92,7 @@ void PreferencesWindow::setDisableModuleErrorDialogs(bool mode)
 void PreferencesWindow::updateModuleErrorInlineMessagesOption(int state)
 {
   SCIRun::Core::Preferences::Instance().showModuleErrorInlineMessages.setValue(state != 0);
-  LOG_DEBUG("showModuleErrorInlineMessages is " << (state != 0));
+  LOG_DEBUG("showModuleErrorInlineMessages is {}", (state != 0));
 }
 
 void PreferencesWindow::setModuleErrorInlineMessages(bool mode)
@@ -107,4 +109,11 @@ bool PreferencesWindow::disableModuleErrorDialogs() const
 bool PreferencesWindow::saveBeforeExecute() const
 {
   return SCIRun::Core::Preferences::Instance().saveBeforeExecute;
+}
+
+void PreferencesWindow::hideEvent(QHideEvent * event)
+{
+  if (writeSettings_)
+    writeSettings_();
+  QDialog::hideEvent(event);
 }

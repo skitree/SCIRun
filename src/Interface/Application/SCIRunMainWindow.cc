@@ -26,6 +26,7 @@
   DEALINGS IN THE SOFTWARE.
 */
 
+#include <es-log/trace-log.h>
 #include <QtWidgets>
 #include <functional>
 #include <boost/bind.hpp>
@@ -86,6 +87,12 @@ SCIRunMainWindow::SCIRunMainWindow()
   setupUi(this);
   builder_ = boost::make_shared<NetworkEditorBuilder>(this);
   dockManager_ = new DockManager(dockSpace_, this);
+
+  {
+    const bool regression = Application::Instance().parameters()->isRegressionMode();
+    boost::shared_ptr<TextEditAppender> logger(new TextEditAppender(logTextBrowser_, regression));
+    GuiLog::Instance().addCustomSink(logger);
+  }
 
   startup_ = true;
 
@@ -182,6 +189,7 @@ SCIRunMainWindow::SCIRunMainWindow()
 	actionRunNewModuleWizard_->setDisabled(true);
 
   connect(actionAbout_, SIGNAL(triggered()), this, SLOT(displayAcknowledgement()));
+  connect(actionCreateToolkitFromDirectory_, SIGNAL(triggered()), this, SLOT(helpWithToolkitCreation()));
 
   connect(helpActionPythonAPI_, SIGNAL(triggered()), this, SLOT(loadPythonAPIDoc()));
   connect(helpActionSnippets_, SIGNAL(triggered()), this, SLOT(showSnippetHelp()));
@@ -211,12 +219,12 @@ SCIRunMainWindow::SCIRunMainWindow()
   setupPythonConsole();
 
   connect(prefsWindow_->defaultNotePositionComboBox_, SIGNAL(activated(int)), this, SLOT(readDefaultNotePosition(int)));
+  connect(prefsWindow_->defaultNoteSizeComboBox_, SIGNAL(activated(int)), this, SLOT(readDefaultNoteSize(int)));
   connect(prefsWindow_->cubicPipesRadioButton_, SIGNAL(clicked()), this, SLOT(makePipesCubicBezier()));
   connect(prefsWindow_->manhattanPipesRadioButton_, SIGNAL(clicked()), this, SLOT(makePipesManhattan()));
   connect(prefsWindow_->euclideanPipesRadioButton_, SIGNAL(clicked()), this, SLOT(makePipesEuclidean()));
   //TODO: will be a user or network setting
   makePipesEuclidean();
-
 
   connect(moduleFilterLineEdit_, SIGNAL(textChanged(const QString&)), this, SLOT(filterModuleNamesInTreeView(const QString&)));
 
@@ -255,9 +263,9 @@ SCIRunMainWindow::SCIRunMainWindow()
   {
     ToolkitInfo fwdInv{ "http://www.sci.utah.edu/images/software/forward-inverse/forward-inverse-mod.png",
     #ifdef __APPLE__
-      "https://codeload.github.com/SCIInstitute/FwdInvToolkit/zip/v1.3",
+      "https://codeload.github.com/SCIInstitute/FwdInvToolkit/zip/v1.4",
     #else
-      "http://sci.utah.edu/devbuilds/scirun5/toolkits/FwdInvToolkit_v1.3.zip",
+      "http://sci.utah.edu/devbuilds/scirun5/toolkits/FwdInvToolkit_v1.4.zip",
     #endif
       "FwdInvToolkit_stable.zip" };
     fwdInv.setupAction(actionForwardInverseStable_, this);
@@ -313,6 +321,7 @@ SCIRunMainWindow::SCIRunMainWindow()
   actionProvenance_->setChecked(!provenanceWindow_->isHidden());
   actionTriggeredEvents_->setChecked(!triggeredEventsWindow_->isHidden());
   actionTagManager_->setChecked(!tagManagerWindow_->isHidden());
+  actionMiniview_->setChecked(!networkMiniViewDockWidget_->isHidden());
 
 	moduleSelectorDockWidget_->setStyleSheet("QDockWidget {background: rgb(66,66,69); background-color: rgb(66,66,69) }"
 		"QToolTip { color: #ffffff; background - color: #2a82da; border: 1px solid white; }"
@@ -326,12 +335,16 @@ SCIRunMainWindow::SCIRunMainWindow()
   setupVersionButton();
 
   WidgetStyleMixin::tabStyle(optionsTabWidget_);
+
+  //devConsole_->updateNetworkViewLog("hello");
 }
 
 void SCIRunMainWindow::resizeEvent(QResizeEvent* event)
 {
   dockSpace_ = size().height();
   QMainWindow::resizeEvent(event);
+
+  //devConsole_->updateNetworkViewLog(tr("resizeEvent to %1,%2").arg(size().width()).arg(size().height()));
 }
 
 void SCIRunMainWindow::createStandardToolbars()
@@ -343,6 +356,8 @@ void SCIRunMainWindow::createStandardToolbars()
   standardBar->addAction(actionLoad_);
   standardBar->addAction(actionSave_);
   standardBar->addAction(actionEnterWhatsThisMode_);
+  standardBar->addAction(actionDragMode_);
+  standardBar->addAction(actionSelectMode_);
 
   auto networkBar = addToolBar("Network");
   addNetworkActionsToBar(networkBar);
@@ -378,8 +393,6 @@ void SCIRunMainWindow::createAdvancedToolbar()
   advancedBar->setObjectName("AdvancedToolBar");
 
   advancedBar->addAction(actionRunScript_);
-  advancedBar->addAction(actionDragMode_);
-  advancedBar->addAction(actionSelectMode_);
   advancedBar->addAction(actionToggleMetadataLayer_);
   advancedBar->addAction(actionToggleTagLayer_);
   //TODO: turn back on after IBBM
@@ -513,9 +526,8 @@ SCIRunMainWindow* SCIRunMainWindow::Instance()
 
 SCIRunMainWindow::~SCIRunMainWindow()
 {
-  GuiLogger::setInstance(nullptr);
-  Log::get().clearAppenders();
-  Log::get("Modules").clearAppenders();
+  //Log::get().clearAppenders();
+  //Log::get("Modules").clearAppenders();
   commandConverter_.reset();
   networkEditor_->disconnect();
   networkEditor_->setNetworkEditorController(nullptr);
@@ -534,13 +546,12 @@ void SCIRunMainWindow::setController(NetworkEditorControllerHandle controller)
 void SCIRunMainWindow::setupNetworkEditor()
 {
   boost::shared_ptr<TreeViewModuleGetter> getter(new TreeViewModuleGetter(*moduleSelectorTreeWidget_));
-	const bool regression = Application::Instance().parameters()->isRegressionMode();
-  boost::shared_ptr<TextEditAppender> logger(new TextEditAppender(logTextBrowser_, regression));
-  GuiLogger::setInstance(logger);
-  Log::get().addCustomAppender(logger);
+
   //TODO: this logger will crash on Windows when the console is closed. See #1250. Need to figure out a better way to manage scope/lifetime of Qt widgets passed to global singletons...
-  //boost::shared_ptr<TextEditAppender> moduleLog(new TextEditAppender(moduleLogTextBrowser_));
-  //Log::get("Modules").addCustomAppender(moduleLog);
+  boost::shared_ptr<TextEditAppender> moduleLog(new TextEditAppender(moduleLogTextBrowser_));
+  ModuleLog::Instance().addCustomSink(moduleLog);
+  GuiLog::Instance().setVerbose(LogSettings::Instance().verbose());
+
   defaultNotePositionGetter_.reset(new ComboBoxDefaultNotePositionGetter(prefsWindow_->defaultNotePositionComboBox_, prefsWindow_->defaultNoteSizeComboBox_));
   auto tagColorFunc = [this](int tag) { return tagManagerWindow_->tagColor(tag); };
   auto tagNameFunc = [this](int tag) { return tagManagerWindow_->tagName(tag); };
@@ -557,6 +568,11 @@ void SCIRunMainWindow::setupNetworkEditor()
 
   builder_->connectAll(networkEditor_);
   NetworkEditor::setConnectorFunc([this](NetworkEditor* ed) { builder_->connectAll(ed); });
+  NetworkEditor::setMiniview(networkMiniviewGraphicsView_);
+
+  networkMiniviewGraphicsView_->setScene(networkEditor_->scene());
+  networkMiniviewGraphicsView_->scale(.1, .1);
+  networkMiniviewGraphicsView_->setBackgroundBrush(QPixmap(":/general/Resources/SCIgrid-large.png"));
 }
 
 void SCIRunMainWindow::executeCommandLineRequests()
@@ -579,7 +595,7 @@ void SCIRunMainWindow::executeAll()
 		auto timeout = Application::Instance().parameters()->developerParameters()->regressionTimeoutSeconds();
 		QTimer::singleShot(1000 * *timeout, this, SLOT(networkTimedOut()));
 	}
-
+  writeSettings();
   networkEditor_->executeAll();
 }
 
@@ -623,6 +639,7 @@ void SCIRunMainWindow::saveNetworkAs()
 
 void SCIRunMainWindow::saveNetworkFile(const QString& fileName)
 {
+  writeSettings();
   NetworkSaveCommand save;
   save.set(Variables::Filename, fileName.toStdString());
   save.execute();
@@ -649,6 +666,7 @@ bool SCIRunMainWindow::loadNetworkFile(const QString& filename, bool isTemporary
 {
   if (!filename.isEmpty())
   {
+    RENDERER_LOG("Opening network file: {}", filename.toStdString());
     FileOpenCommand command;
     command.set(Variables::Filename, filename.toStdString());
     command.set(Name("temporary-file"), isTemporary);
@@ -1063,17 +1081,18 @@ void SCIRunMainWindow::setupDevConsole()
   actionDevConsole_->setShortcut(QKeySequence("`"));
   connect(devConsole_, SIGNAL(executorChosen(int)), this, SLOT(setExecutor(int)));
   connect(devConsole_, SIGNAL(globalPortCachingChanged(bool)), this, SLOT(setGlobalPortCaching(bool)));
+  //NetworkEditor::setViewUpdateFunc([this](const QString& s) { devConsole_->updateNetworkViewLog(s); });
 }
 
 void SCIRunMainWindow::setExecutor(int type)
 {
-  LOG_DEBUG("Executor of type " << type << " selected"  << std::endl);
+  LOG_DEBUG("Executor of type {} selected", type);
   networkEditor_->getNetworkEditorController()->setExecutorType(type);
 }
 
 void SCIRunMainWindow::setGlobalPortCaching(bool enable)
 {
-  LOG_DEBUG("Global port caching flag set to " << (enable ? "true" : "false") << std::endl);
+  LOG_DEBUG("Global port caching flag set to {}", (enable ? "true" : "false"));
   //TODO: encapsulate better
   SimpleSink::setGlobalPortCachingFlag(enable);
 }
@@ -1083,12 +1102,17 @@ void SCIRunMainWindow::readDefaultNotePosition(int index)
   Q_EMIT defaultNotePositionChanged(defaultNotePositionGetter_->position()); //TODO: unit test.
 }
 
+void SCIRunMainWindow::readDefaultNoteSize(int index)
+{
+  Q_EMIT defaultNoteSizeChanged(defaultNotePositionGetter_->size()); //TODO: unit test.
+}
+
 void SCIRunMainWindow::setupPreferencesWindow()
 {
-  prefsWindow_ = new PreferencesWindow(networkEditor_, this);
+  prefsWindow_ = new PreferencesWindow(networkEditor_, [this]() { writeSettings(); }, this);
 
   connect(actionPreferences_, SIGNAL(triggered()), prefsWindow_, SLOT(show()));
-  //connect(prefs_, SIGNAL(visibilityChanged(bool)), actionPreferences_, SLOT(setChecked(bool)));
+
   prefsWindow_->setVisible(false);
 }
 
@@ -1112,12 +1136,12 @@ void SCIRunMainWindow::runPythonScript(const QString& scriptFileName)
 {
 #ifdef BUILD_WITH_PYTHON
   NetworkEditor::InEditingContext iec(networkEditor_);
-  GuiLogger::Instance().logInfo("RUNNING PYTHON SCRIPT: " + scriptFileName);
+  GuiLogger::logInfo("RUNNING PYTHON SCRIPT: " + scriptFileName);
   PythonInterpreter::Instance().importSCIRunLibrary();
   PythonInterpreter::Instance().run_file(scriptFileName.toStdString());
   statusBar()->showMessage(tr("Script is running."), 2000);
 #else
-  GuiLogger::Instance().logInfo("Python not included in this build, cannot run " + scriptFileName);
+  GuiLogger::logInfo("Python not included in this build, cannot run " + scriptFileName);
 #endif
 }
 
@@ -1200,13 +1224,13 @@ namespace {
     QFile inputFile("patterns.txt");
     if (inputFile.open(QIODevice::ReadOnly))
     {
-      GuiLogger::Instance().logInfo("Pattern file opened: " + inputFile.fileName());
+      GuiLogger::logInfo("Pattern file opened: " + inputFile.fileName());
       QTextStream in(&inputFile);
       while (!in.atEnd())
       {
         QString line = in.readLine();
         addSnippet(line, snips);
-        GuiLogger::Instance().logInfo("Pattern read: " + line);
+        GuiLogger::logInfo("Pattern read: " + line);
       }
       inputFile.close();
     }
@@ -1252,7 +1276,7 @@ namespace {
 
   QTreeWidgetItem* addFavoriteItem(QTreeWidgetItem* faves, QTreeWidgetItem* module)
   {
-    LOG_DEBUG("Adding item to favorites: " << module->text(0).toStdString() << std::endl);
+    LOG_DEBUG("Adding item to favorites: {}", module->text(0).toStdString());
     auto copy = new QTreeWidgetItem(*module);
     copy->setData(0, Qt::CheckStateRole, QVariant());
     if (copy->textColor(0) == CLIPBOARD_COLOR)
@@ -1574,6 +1598,20 @@ void SCIRunMainWindow::displayAcknowledgement()
     "CIBC software and the data sets provided on this web site are Open Source software projects that are principally funded through the SCI Institute's NIH/NCRR CIBC. For us to secure the funding that allows us to continue providing this software, we must have evidence of its utility. Thus we ask users of our software and data to acknowledge us in their publications and inform us of these publications. Please use the following acknowledgment and send us references to any publications, presentations, or successful funding applications that make use of the NIH/NCRR CIBC software or data sets we provide. <p> <i>This project was supported by the National Institute of General Medical Sciences of the National Institutes of Health under grant number P41GM103545.</i>");
 }
 
+void SCIRunMainWindow::helpWithToolkitCreation()
+{
+  QMessageBox::information(this, "Temp",
+    "<b>Help with toolkit creation--for power users</b>"
+    "<p> First, gather all network files for your toolkit into a single directory. This directory may contain "
+    "one level of subdirectories. Next, "
+    "in your build directory (you must SCIRun from source), locate the executable named <code>bundle_toolkit</code>. "
+    " The usage is:"
+    "<pre>bundle_toolkit OUTPUT_FILE [DIRECTORY_TO_SCAN]</pre>"
+    "where OUTPUT_FILE is the desired name of your toolkit bundle. If no directory is specified, the current directory is scanned."
+    "<p>For further assistance, visit https://github.com/SCIInstitute/FwdInvToolkit/wiki."
+);
+}
+
 void SCIRunMainWindow::setDataDirectory(const QString& dir)
 {
   if (!dir.isEmpty())
@@ -1718,8 +1756,6 @@ void SCIRunMainWindow::hideNonfunctioningWidgets()
     prefsWindow_->userDataLineEdit_ <<
     prefsWindow_->userDataPushButton_ <<
     prefsWindow_->dataSetGroupBox_ <<
-    networkEditorMiniViewLabel_ <<
-    miniviewTextLabel_ <<
     prefsWindow_->scirunDataPathTextEdit_ <<
     prefsWindow_->addToPathButton_;
 
@@ -2129,7 +2165,8 @@ void FileDownloader::downloadProgress(qint64 received, qint64 total) const
 {
   if (statusBar_)
 	{
-    statusBar_->showMessage(tr("File progress: %1 / %2").arg(received).arg(total), 1000);
+    auto totalStr = total == -1 ? "?" : QString::number(total);
+    statusBar_->showMessage(tr("File progress: %1 / %2").arg(received).arg(totalStr), 1000);
 		if (received == total)
 			statusBar_->showMessage("File downloaded.", 1000);
 	}

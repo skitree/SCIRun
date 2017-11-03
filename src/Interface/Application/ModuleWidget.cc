@@ -585,7 +585,7 @@ void ModuleWidget::fillReplaceWithMenu(QMenu* menu)
     return;
 
   menu->clear();
-  LOG_DEBUG("Filling menu for " << theModule_->get_module_name() << std::endl);
+  LOG_DEBUG("Filling menu for {}", theModule_->get_module_name());
   auto replacements = Application::Instance().controller()->possibleReplacements(this->theModule_);
   auto isReplacement = [&](const ModuleDescription& md) { return replacements.find(md.lookupInfo_) != replacements.end(); };
   fillMenuWithFilteredModuleActions(menu, Application::Instance().controller()->getAllAvailableModuleDescriptions(),
@@ -1167,8 +1167,7 @@ void ModuleWidget::makeOptionsDialog()
       dockable_->setAllowedAreas(allowedDockArea());
       dockable_->setAutoFillBackground(true);
       SCIRunMainWindow::Instance()->addDockWidget(Qt::RightDockWidgetArea, dockable_);
-      if (!isViewScene_)
-        dockable_->setFloating(!Preferences::Instance().modulesAreDockable);
+      dockable_->setFloating(true);
       dockable_->hide();
       connect(dockable_, SIGNAL(visibilityChanged(bool)), this, SLOT(colorOptionsButton(bool)));
       connect(dockable_, SIGNAL(topLevelChanged(bool)), this, SLOT(updateDockWidgetProperties(bool)));

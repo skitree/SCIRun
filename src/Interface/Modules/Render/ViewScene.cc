@@ -26,6 +26,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
+#include <es-log/trace-log.h>
 #include <gl-platform/GLPlatform.hpp>
 
 #include <Interface/Modules/Render/ViewScenePlatformCompatibility.h>
@@ -45,6 +46,7 @@ using namespace SCIRun::Gui;
 using namespace SCIRun::Dataflow::Networks;
 using namespace SCIRun::Core;
 using namespace SCIRun::Core::Datatypes;
+using namespace SCIRun::Core::Logging;
 using namespace SCIRun::Core::Geometry;
 using namespace SCIRun::Graphics::Datatypes;
 using namespace SCIRun::Core::Thread;
@@ -71,9 +73,14 @@ namespace
 //------------------------------------------------------------------------------
 ViewSceneDialog::ViewSceneDialog(const std::string& name, ModuleStateHandle state,
   QWidget* parent /* = 0 */)
-  : ModuleDialogGeneric(state, parent), mConfigurationDock(nullptr), shown_(false),
-  shiftdown_(false), selected_(false),
-  clippingPlaneIndex_(0),screenshotTaker_(nullptr), saveScreenshotOnNewGeometry_(false),
+  : ModuleDialogGeneric(state, parent),
+  mConfigurationDock(nullptr),
+  shown_(false),
+  shiftdown_(false),
+  selected_(false),
+  clippingPlaneIndex_(0),
+  screenshotTaker_(nullptr),
+  saveScreenshotOnNewGeometry_(false),
   gid_(new DialogIdGenerator(name))
 {
   counter_ = 1;
@@ -148,6 +155,7 @@ ViewSceneDialog::ViewSceneDialog(const std::string& name, ModuleStateHandle stat
 
   resizeTimer_.setSingleShot(true);
   connect(&resizeTimer_, SIGNAL(timeout()), this, SLOT(resizingDone()));
+  resize(1000, 1000);
 }
 
 void ViewSceneDialog::pullSpecial()
@@ -441,6 +449,7 @@ void ViewSceneDialog::closeEvent(QCloseEvent *evt)
 
 void ViewSceneDialog::newGeometryValue()
 {
+  RENDERER_LOG_FUNCTION_SCOPE;
   Guard lock(Modules::Render::ViewScene::mutex_.get());
 
   auto spire = mSpire.lock();
@@ -475,7 +484,8 @@ void ViewSceneDialog::newGeometryValue()
     allGeoms.push_back(plane);
   }
 
-  displayNames = mConfigurationDock->visibleItems().synchronize(allGeoms);
+  auto showFieldStates = transient_value_cast<ShowFieldStatesMap>(state_->getTransientValue(Parameters::ShowFieldStates));
+  displayNames = mConfigurationDock->visibleItems().synchronize(allGeoms, showFieldStates);
   int port = 0;
   for (auto it = allGeoms.begin(); it != allGeoms.end(); ++it, ++port)
   {
@@ -1499,10 +1509,10 @@ void ViewSceneDialog::addControlLockButton()
   connect(lockZoom_, SIGNAL(triggered()), this, SLOT(lockZoomToggled()));
 
   menu->addSeparator();
-  
+
   auto lockAll = menu->addAction("Lock All");
   connect(lockAll, SIGNAL(triggered()), this, SLOT(lockAllTriggered()));
-  
+
   auto unlockAll = menu->addAction("Unlock All");
   connect(unlockAll, SIGNAL(triggered()), this, SLOT(unlockAllTriggered()));
 
@@ -1781,6 +1791,17 @@ void ViewSceneDialog::sendGeometryFeedbackToState(int x, int y, const std::strin
   vsf.transform = toSciTransform(trans);
   vsf.selectionName = selName;
   state_->setTransientValue(Parameters::GeometryFeedbackInfo, vsf);
+}
+
+void ViewSceneDialog::updateMeshComponentSelection(const QString& showFieldName, const QString& component, bool selected)
+{
+  auto name = showFieldName.toStdString();
+  auto moduleId = name;
+  auto renamed = name.find("(from ");
+  if (renamed != std::string::npos)
+    moduleId.assign(name.begin() + renamed + 6, name.end() - 1);
+  MeshComponentSelectionFeedback sel(moduleId, component.toStdString(), selected);
+  state_->setTransientValue(Parameters::MeshComponentSelection, sel);
 }
 
 void ViewSceneDialog::takeScreenshot()
