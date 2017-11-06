@@ -713,24 +713,6 @@ namespace SCIRun {
     { return mCamera->getViewToProjection(); }
 
     //------------------------------------------------------------------------------
-    /*void SRInterface::setScaleBar(const ScaleBar &scaleBarData)
-    {
-      scaleBar_.visible = scaleBarData.visible;
-      scaleBar_.fontSize = scaleBarData.fontSize;
-      scaleBar_.length = scaleBarData.length;
-      scaleBar_.height = scaleBarData.height;
-      scaleBar_.multiplier = scaleBarData.multiplier;
-      scaleBar_.numTicks = scaleBarData.numTicks;
-      scaleBar_.lineWidth = scaleBarData.lineWidth;
-      scaleBar_.unit = scaleBarData.unit;
-      if (scaleBar_.visible)
-      {
-        updateScaleBarLength();
-        updateGeometryScaleBar();
-      }
-    }*/
-
-    //------------------------------------------------------------------------------
     void SRInterface::inputMouseUp(const glm::ivec2& /*pos*/, MouseButton /*btn*/)
     {
       widgetSelected_ = false;

@@ -114,26 +114,28 @@ public:
   template <typename T>
   void registerComponent()
   {
+    std::cout << "registerComponent " << T::getName() << " id: " << spire::TemplateID::getID<T>() << std::endl;
     spire::BaseComponentContainer* system = ensureComponentArrayExists<T, CerealHeap<T>>();
     const char* name = dynamic_cast<CerealHeap<T>*>(system)->getComponentName();
 
     // Ensure there are no duplicate component names.
-    if (std::get<1>(mComponentNames.insert(std::string(name))) == false)
+    if (!std::get<1>(mComponentNames.insert(std::string(name))))
     {
       std::cerr << "es-cereal: Component with duplicate name." << " Name: " << name << std::endl;
       throw std::runtime_error("es-cereal: Component with duplicate name.");
       return;
     }
 
-    mComponentIDNameMap.insert(std::make_pair(spire::TemplateID<T>::getID(), std::string(name)));
+    mComponentIDNameMap.insert(std::make_pair(spire::TemplateID::getID<T>(), std::string(name)));
   }
 
   template <typename T>
   void addComponent(uint64_t entityID, const T& component)
   {
+    std::cout << "addComponent " << T::getName() << " id: " << TemplateID::getID<T>() << std::endl;
     spire::BaseComponentContainer* componentContainer
-        = getComponentContainer(spire::TemplateID<T>::getID());
-    if (componentContainer == nullptr)
+      = getComponentContainer(spire::TemplateID::getID<T>());
+    if (!componentContainer)
     {
       std::cerr << "es-cereal: Warning - addComponent called but component has not been registered yet!" << std::endl;
       std::cerr << "es-cereal: Component - " << T::getName() << std::endl;
@@ -145,9 +147,10 @@ public:
   template <typename T>
   size_t addStaticComponent(T&& component)
   {
+    std::cout << "addStaticComponent " << std::decay<T>::type::getName() << " id: " << spire::getESTypeID<T>() << std::endl;
     spire::BaseComponentContainer* componentContainer
         = getComponentContainer(spire::getESTypeID<T>());
-    if (componentContainer == nullptr)
+    if (!componentContainer)
     {
       std::cerr << "es-cereal: Warning - addStaticComponent called but component has not been registered yet!" << std::endl;
       std::cerr << "es-cereal: Component - " << std::decay<T>::type::getName() << std::endl;

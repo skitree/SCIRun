@@ -16,7 +16,7 @@ namespace spire {
 template <typename T>
 uint64_t getESTypeID()
 {
-  return TemplateID<typename std::decay<T>::type>::getID();
+  return TemplateID::getID<typename std::decay<T>::type>();
 }
 
 /// An example of creating a component container map using a std::map.

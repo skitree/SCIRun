@@ -57,7 +57,7 @@ public:
   template <typename T>
   void addExemptComponent()
   {
-    mExemptComponents.insert(spire::TemplateID<T>::getID());
+    mExemptComponents.insert(spire::TemplateID::getID<T>());
   }
 
   /// Adds a garbage collector system. Can be used in conjunction with

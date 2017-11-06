@@ -95,12 +95,12 @@ public:
     if (sizeof...(Ts) == 0)
       return false;
 
-    std::array<BaseComponentContainer*, sizeof...(Ts)> baseComponents = { core.getComponentContainer(TemplateID<Ts>::getID())... };
+    std::array<BaseComponentContainer*, sizeof...(Ts)> baseComponents = { core.getComponentContainer(TemplateID::getID<Ts>())... };
     std::array<int, sizeof...(Ts)> indices;
     std::array<int, sizeof...(Ts)> nextIndices;
     std::array<bool, sizeof...(Ts)> isStatic;
     std::array<int, sizeof...(Ts)> numComponents;
-    std::array<bool, sizeof...(Ts)> optionalComponents = { isComponentOptional(TemplateID<Ts>::getID())... }; // Detect optional components via overriden function call (simplest).
+    std::array<bool, sizeof...(Ts)> optionalComponents = { isComponentOptional(TemplateID::getID<Ts>())... }; // Detect optional components via overriden function call (simplest).
 
     // Arrays containing components arrays. BuildComponentArrays was made to be
     // called before we correct baseComponents with getEmptyContainer.
@@ -172,12 +172,12 @@ public:
     if (sizeof...(Ts) == 0)
       return;
 
-    std::array<BaseComponentContainer*, sizeof...(Ts)> baseComponents = { core.getComponentContainer(TemplateID<Ts>::getID())... };
+    std::array<BaseComponentContainer*, sizeof...(Ts)> baseComponents = { core.getComponentContainer(TemplateID::getID<Ts>())... };
     std::array<int, sizeof...(Ts)> indices;
     std::array<int, sizeof...(Ts)> nextIndices;
     std::array<int, sizeof...(Ts)> numComponents;
     std::array<bool, sizeof...(Ts)> isStatic;
-    std::array<bool, sizeof...(Ts)> optionalComponents = { isComponentOptional(TemplateID<Ts>::getID())... }; // Detect optional components via overriden function call (simplest).
+    std::array<bool, sizeof...(Ts)> optionalComponents = { isComponentOptional(TemplateID::getID<Ts>())... }; // Detect optional components via overriden function call (simplest).
 
     // Arrays containing components arrays. BuildComponentArrays was made to be
     // called before we correct baseComponents with getEmptyContainer.
@@ -448,7 +448,7 @@ public:
 
   std::vector<uint64_t> getComponents() const override
   {
-    std::vector<uint64_t> components = { TemplateID<Ts>::getID()... };
+    std::vector<uint64_t> components = { TemplateID::getID<Ts>()... };
     return components;
   }
 
@@ -578,7 +578,7 @@ public:
       if (baseComponents[TupleIndex] != nullptr)
       {
         std::get<TupleIndex>(input).container
-            = dynamic_cast<ComponentContainer<RT>*>(core.getComponentContainer(TemplateID<RT>::getID()));
+          = dynamic_cast<ComponentContainer<RT>*>(core.getComponentContainer(TemplateID::getID<RT>()));
       }
       else
       {
@@ -906,7 +906,7 @@ struct OptionalCompImpl<RT, RTs...>
 {
   static bool exec(uint64_t templateID)
   {
-    if (TemplateID<RT>::getID() == templateID) return true;
+    if (TemplateID::getID<RT>() == templateID) return true;
     else return OptionalCompImpl<RTs...>::exec(templateID);
   }
 };

@@ -8,7 +8,7 @@
 
 namespace ren {
 
-struct StaticGLState
+struct SCISHARE StaticGLState
 {
   // -- Data --
   spire::GLState state;

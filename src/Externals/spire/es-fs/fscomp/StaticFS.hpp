@@ -10,7 +10,7 @@
 
 namespace spire {
 
-struct StaticFS
+struct SCISHARE StaticFS
 {
   // -- Data --
 

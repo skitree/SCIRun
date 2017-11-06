@@ -11,7 +11,7 @@ namespace gen {
 // This component will *not* be present when there is no mouse input available
 // for the system. You can check other input sources such as touch input
 // or keyboard input.
-struct StaticScreenDims
+struct SCISHARE StaticScreenDims
 {
   // -- Data --
   uint32_t width;   // In pixels.

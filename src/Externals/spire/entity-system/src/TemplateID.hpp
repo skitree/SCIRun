@@ -5,6 +5,7 @@
 #define SPIRE_ENTITY_SYSTEM_TEMPLATEID_HPP
 
 #include <es-log/trace-log.h>
+#include <iostream>
 #include <cstdint>
 #include <spire/scishare.h>
 
@@ -31,29 +32,34 @@ private:
 
 /// Simple templated class to extract a unique ID from types. Used mostly
 /// for sorting purposes.
-template <typename T>
-class TemplateID
+
+class SCISHARE TemplateID
 {
 public:
-
+  template <typename T>
   static uint64_t getID()
   {
-    // Assign ourselves a new static ID if we don't already have one.
-    if (mStaticTypeID == 0)
-      mStaticTypeID = TemplateIDHelper::getNewTypeID();
+    auto it = ids_.find(T::getName());
+    if (it == ids_.end())
+    {
+      auto mStaticTypeID = TemplateIDHelper::getNewTypeID();
+      std::cout << "TemplateID " << T::getName() << " id: " << mStaticTypeID << std::endl;
+      ids_[T::getName()] = mStaticTypeID;
+      return mStaticTypeID;
+    }
 
-    return mStaticTypeID;
+    return it->second;
   }
 
-  static void setID(uint64_t id)
-  {
-    mStaticTypeID = id;
-  }
-
-  static uint64_t mStaticTypeID;
+  //template <typename T>
+  //static void setID(uint64_t id)
+  //{
+  //  mStaticTypeID = id;
+  //}
+private:
+  static std::map<std::string, uint64_t> ids_;
 };
 
-template <typename T> uint64_t TemplateID<T>::mStaticTypeID = 0;
 
 } // namespace spire
 
