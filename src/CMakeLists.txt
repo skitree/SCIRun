@@ -365,10 +365,8 @@ IF(WITH_TETGEN)
 ENDIF()
 
 ########################################################################
-# Configure ospray module build-- TODO: convert into real external
+# Configure ospray module build
 
-OPTION(WITH_OSPRAY "Build with Ospray support." OFF)
-MARK_AS_ADVANCED(WITH_OSPRAY)
 IF(WITH_OSPRAY)
   ADD_DEFINITIONS(-DWITH_OSPRAY)
 ENDIF()

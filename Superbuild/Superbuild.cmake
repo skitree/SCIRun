@@ -75,6 +75,10 @@ OPTION(BUILD_WITH_PYTHON "Build with python support." ON)
 OPTION(WITH_TETGEN "Build Tetgen." OFF)
 
 ###########################################
+# Configure ospray
+OPTION(WITH_OSPRAY "Build with Ospray support." ON)
+
+###########################################
 # Configure data
 OPTION(BUILD_WITH_SCIRUN_DATA "Svn checkout data" OFF)
 
@@ -195,6 +199,11 @@ IF(WITH_TETGEN)
   ADD_EXTERNAL( ${SUPERBUILD_DIR}/TetgenExternal.cmake Tetgen_external )
 ENDIF()
 
+IF(WITH_OSPRAY)
+  ADD_EXTERNAL( ${SUPERBUILD_DIR}/TbbExternal.cmake Tbb_external )
+  ADD_EXTERNAL( ${SUPERBUILD_DIR}/OsprayExternal.cmake Ospray_external )
+ENDIF()
+
 ADD_EXTERNAL( ${SUPERBUILD_DIR}/BoostExternal.cmake Boost_external )
 
 ###########################################
@@ -245,6 +254,12 @@ ENDIF()
 IF(WITH_TETGEN)
   LIST(APPEND SCIRUN_CACHE_ARGS
     "-DTetgen_DIR:PATH=${Tetgen_DIR}"
+  )
+ENDIF()
+
+IF(WITH_OSPRAY)
+  LIST(APPEND SCIRUN_CACHE_ARGS
+    "-DOspray_DIR:PATH=${Ospray_DIR}"
   )
 ENDIF()
 
