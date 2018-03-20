@@ -102,7 +102,7 @@ ViewSceneDialog::ViewSceneDialog(const std::string& name, ModuleStateHandle stat
 
   mGLWidget = new GLWidget(new QtGLContext(fmt), parentWidget());
   connect(mGLWidget, SIGNAL(fatalError(const QString&)), this, SIGNAL(fatalError(const QString&)));
-  connect(this, SIGNAL(mousePressSignalForTestingGeometryObjectFeedback(int, int, const std::string&)), this, SLOT(sendGeometryFeedbackToState(int, int, const std::string&)));
+  connect(this, SIGNAL(objectSelected(int, int, const std::string&)), this, SLOT(sendGeometryFeedbackToState(int, int, const std::string&)));
 
   if (mGLWidget->isValid())
   {
@@ -227,15 +227,6 @@ QColor ViewSceneDialog::checkColorSetting(std::string& rgb, QColor defaultColor)
   return newColor;
 }
 
-void ViewSceneDialog::mousePressEvent(QMouseEvent* event)
-{
-  if (shiftdown_)
-  {
-    selectObject(event->x(), event->y());
-    newGeometryValue();
-  }
-}
-
 void ViewSceneDialog::resizeEvent(QResizeEvent *event)
 {
   resizeTimer_.start(400);
@@ -296,6 +287,18 @@ std::string ViewSceneDialog::restoreObjColor()
   return selName;
 }
 
+void ViewSceneDialog::mousePressEvent(QMouseEvent* event)
+{
+  if (shiftdown_)
+  {
+    qDebug() << __FUNCTION__ <<
+      "keys:" << qApp->keyboardModifiers() <<
+      "buttons:" << event->buttons();
+    selectObject(event->x(), event->y());
+    newGeometryValue();
+  }
+}
+
 void ViewSceneDialog::mouseReleaseEvent(QMouseEvent* event)
 {
   if (selected_)
@@ -303,7 +306,7 @@ void ViewSceneDialog::mouseReleaseEvent(QMouseEvent* event)
     selected_ = false;
     auto selName = restoreObjColor();
     newGeometryValue();
-    Q_EMIT mousePressSignalForTestingGeometryObjectFeedback(event->x(), event->y(), selName);
+    Q_EMIT objectSelected(event->x(), event->y(), selName);
   }
 }
 

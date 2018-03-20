@@ -69,7 +69,7 @@ namespace SCIRun {
       void adjustToolbar() override;
     Q_SIGNALS:
       void newGeometryValueForwarder();
-      void mousePressSignalForTestingGeometryObjectFeedback(int x, int y, const std::string& selName);
+      void objectSelected(int x, int y, const std::string& selName);
 
     protected Q_SLOTS:
       void menuMouseControlChanged(int index);

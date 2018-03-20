@@ -222,7 +222,7 @@
 									<name>OutputCenterX</name>
 									<value>
 										<which>1</which>
-										<value>1.72603154774702805e+00</value>
+										<value>-1.85459323649574448e+00</value>
 									</value>
 								</second>
 							</item>
@@ -234,7 +234,7 @@
 									<name>OutputCenterY</name>
 									<value>
 										<which>1</which>
-										<value>1.07727941007685257e+00</value>
+										<value>-7.13407854113970730e-02</value>
 									</value>
 								</second>
 							</item>
@@ -246,7 +246,7 @@
 									<name>OutputCenterZ</name>
 									<value>
 										<which>1</which>
-										<value>-3.85148487408449924e-01</value>
+										<value>1.76467351380557380e+00</value>
 									</value>
 								</second>
 							</item>
@@ -282,7 +282,7 @@
 									<name>OutputSizeZ</name>
 									<value>
 										<which>1</which>
-										<value>1.00000000000000000e+00</value>
+										<value>1.00000000000000044e+00</value>
 									</value>
 								</second>
 							</item>

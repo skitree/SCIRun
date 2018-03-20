@@ -351,7 +351,6 @@ void EditMeshBoundingBox::executeImpl(FieldHandle inputField)
     MatrixHandle mh(new DenseMatrix(transformAppliedToOutputMesh));
     sendOutput(Transformation_Matrix, mh);
 
-    //state->setValue(Resetting, false);
     widgetMoved_ = false;
 
     sendOutput(OutputField, output);
