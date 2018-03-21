@@ -31,6 +31,7 @@
 #include <gl-platform/GLPlatform.hpp>
 #include <Interface/Modules/Render/UndefiningX11Cruft.h>
 #include <QtOpenGL/QGLWidget>
+#include <QDebug>
 
 #include <Interface/Modules/Render/ES/SRInterface.h>
 #include <Interface/Modules/Render/ES/SRCamera.h>
@@ -233,14 +234,6 @@ namespace SCIRun {
     //------------------------------------------------------------------------------
     void SRInterface::inputMouseDown(const glm::ivec2& pos, MouseButton btn)
     {
-      if (selectWidget_ && widgetExists_)
-      {
-        if (btn == MouseButton::MOUSE_LEFT)
-        {
-          // //widgetSelected_ = foundWidget(pos);
-          // std::cout << "widget exists" << std::endl;
-        }
-      }
       mCamera->mouseDownEvent(pos, btn);
     }
 
@@ -262,9 +255,10 @@ namespace SCIRun {
     //------------------------------------------------------------------------------
     void SRInterface::inputMouseMove(const glm::ivec2& pos, MouseButton btn)
     {
+      //qDebug() << __FUNCTION__ << pos.x << pos.y << btn;
       if (widgetSelected_)
       {
-        updateWidget(pos);
+        updateWidget(pos, btn);
       }
       else
       {
@@ -275,6 +269,7 @@ namespace SCIRun {
     //------------------------------------------------------------------------------
     void SRInterface::inputMouseWheel(int32_t delta)
     {
+      //qDebug() << __FUNCTION__ << delta;
       mCamera->mouseWheelEvent(delta, mZoomSpeed);
     }
 
@@ -1286,22 +1281,45 @@ namespace SCIRun {
       return true;
     }
 
-    void SRInterface::updateWidget(const glm::ivec2& pos)
+    void SRInterface::updateWidget(const glm::ivec2& mousePos, MouseButton btn)
     {
-      gen::StaticCamera* cam = mCore.getStaticComponent<gen::StaticCamera>();
-      glm::vec4 spos((float(2 * pos.x) - float(mScreenWidth)) / float(mScreenWidth),
-        (float(mScreenHeight) - float(2 * pos.y)) / float(mScreenHeight),
-        mSelectedPos.z, 1.0f);
+      qDebug() << __FUNCTION__ << "input" << mousePos.x << mousePos.y << btn;
+      qDebug() << __FUNCTION__ << "mSelectedPos" << mSelectedPos.x << mSelectedPos.y << mSelectedPos.z;
+      qDebug() << "xy stuff" << (float(2 * mousePos.x) - float(mScreenWidth)) / float(mScreenWidth)
+       << (float(mScreenHeight) - float(2 * mousePos.y)) / float(mScreenHeight);
+      glm::vec4 spos;
+      if (btn == 1)
+      {
+        spos = glm::vec4((float(2 * mousePos.x) - float(mScreenWidth)) / float(mScreenWidth),
+          (float(mScreenHeight) - float(2 * mousePos.y)) / float(mScreenHeight),
+          mSelectedPos.z, 1.0f);
+      }
+      else if (btn == 2)
+      {
+        auto dx = (float(2 * mousePos.x) - float(mScreenWidth)) / float(mScreenWidth);
+        spos = glm::vec4(dx,
+          (float(mScreenHeight) - float(2 * mousePos.y)) / float(mScreenHeight),
+           mSelectedPos.z * dx, 1.0f);
+      }
+
+      //qDebug() << __FUNCTION__ << "spos" << spos.x << spos.y << spos.z;
+
+      //qDebug() << __FUNCTION__ << "setPosition" << (spos - mSelectedPos).x << (spos - mSelectedPos).y << (spos - mSelectedPos).z;
+
+      auto p1 = mWidgetTransform.getPosition();
+      //qDebug() << "widget before:" << p1.x << p1.y << p1.z;
 
       mWidgetTransform = gen::Transform();
+      auto cam = mCore.getStaticComponent<gen::StaticCamera>();
       mWidgetTransform.setPosition((spos - mSelectedPos).xyz());
       mWidgetTransform.transform = glm::inverse(cam->data.projIV) *
         mWidgetTransform.transform * cam->data.projIV;
 
-      spire::CerealHeap<gen::Transform>* contTrans =
-        mCore.getOrCreateComponentContainer<gen::Transform>();
-      std::pair<const gen::Transform*, size_t> component =
-        contTrans->getComponent(mSelectedID);
+      auto p2 = mWidgetTransform.getPosition();
+      //qDebug() << "widget after:" << p2.x << p2.y << p2.z;
+
+      auto contTrans = mCore.getOrCreateComponentContainer<gen::Transform>();
+      auto component = contTrans->getComponent(mSelectedID);
 
       if (component.first != nullptr)
         contTrans->modifyIndex(mWidgetTransform, component.second, 0);

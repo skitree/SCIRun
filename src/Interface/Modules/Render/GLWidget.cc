@@ -109,6 +109,7 @@ SCIRun::Render::SRInterface::MouseButton GLWidget::getSpireButton(QMouseEvent* e
 //------------------------------------------------------------------------------
 void GLWidget::mouseMoveEvent(QMouseEvent* event)
 {
+  //qDebug() << __FILE__ << __FUNCTION__ << event->buttons();
   // Extract appropriate key.
   auto btn = getSpireButton(event);
   mGraphics->inputMouseMove(glm::ivec2(event->x(), event->y()), btn);
@@ -118,6 +119,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event)
 //------------------------------------------------------------------------------
 void GLWidget::mousePressEvent(QMouseEvent* event)
 {
+  qDebug() << __FILE__ << __FUNCTION__ << event->buttons();
   auto btn = getSpireButton(event);
   mGraphics->inputMouseDown(glm::ivec2(event->x(), event->y()), btn);
   event->ignore();
@@ -126,6 +128,7 @@ void GLWidget::mousePressEvent(QMouseEvent* event)
 //------------------------------------------------------------------------------
 void GLWidget::mouseReleaseEvent(QMouseEvent* event)
 {
+  qDebug() << __FILE__ << __FUNCTION__ << event->buttons();
   auto btn = getSpireButton(event);
   mGraphics->inputMouseUp(glm::ivec2(event->x(), event->y()), btn);
   event->ignore();

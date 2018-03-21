@@ -91,14 +91,14 @@ void SRCamera::applyTransform()
 //------------------------------------------------------------------------------
 void SRCamera::mouseDownEvent(const glm::ivec2& pos, SRInterface::MouseButton btn)
 {
-  glm::vec2 screenSpace = calculateScreenSpaceCoords(pos);
+  auto screenSpace = calculateScreenSpaceCoords(pos);
   mArcLookAt->doReferenceDown(screenSpace);
 }
 
 //------------------------------------------------------------------------------
 void SRCamera::mouseMoveEvent(const glm::ivec2& pos, SRInterface::MouseButton btn)
 {
-  glm::vec2 screenSpace = calculateScreenSpaceCoords(pos);
+  auto screenSpace = calculateScreenSpaceCoords(pos);
   switch (mInterface.getMouseMode())
   {
     case SRInterface::MOUSE_OLDSCIRUN:
@@ -119,7 +119,6 @@ void SRCamera::mouseWheelEvent(int32_t delta, int zoomSpeed)
 {
   if (mInterface.getMouseMode() != SRInterface::MOUSE_OLDSCIRUN && !lockZoom_)
   {
-    //mArcLookAt->doZoom(-static_cast<float>(delta) / 100.0f, zoomSpeed);
     mArcLookAt->doZoom(mInvertVal*static_cast<float>(delta) / 100.0f, zoomSpeed);
   }
 }
@@ -128,8 +127,8 @@ void SRCamera::mouseWheelEvent(int32_t delta, int zoomSpeed)
 void SRCamera::doAutoView(const Core::Geometry::BBox& bbox)
 {
   // Convert core geom bbox to AABB.
-  Core::Geometry::Point bboxMin = bbox.get_min();
-  Core::Geometry::Point bboxMax = bbox.get_max();
+  auto bboxMin = bbox.get_min();
+  auto bboxMax = bbox.get_max();
   glm::vec3 min(bboxMin.x(), bboxMin.y(), bboxMin.z());
   glm::vec3 max(bboxMax.x(), bboxMax.y(), bboxMax.z());
 
@@ -142,7 +141,7 @@ void SRCamera::doAutoView(const Core::Geometry::BBox& bbox)
 //------------------------------------------------------------------------------
 void SRCamera::setView(const glm::vec3& view, const glm::vec3& up)
 {
-    mArcLookAt->setView(view, up);
+  mArcLookAt->setView(view, up);
 }
 
 //------------------------------------------------------------------------------

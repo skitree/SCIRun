@@ -291,7 +291,7 @@ void ViewSceneDialog::mousePressEvent(QMouseEvent* event)
 {
   if (shiftdown_)
   {
-    qDebug() << __FUNCTION__ <<
+    qDebug() << __FILE__ << __FUNCTION__ <<
       "keys:" << qApp->keyboardModifiers() <<
       "buttons:" << event->buttons();
     selectObject(event->x(), event->y());
@@ -303,6 +303,10 @@ void ViewSceneDialog::mouseReleaseEvent(QMouseEvent* event)
 {
   if (selected_)
   {
+    qDebug() << __FILE__ << __FUNCTION__ <<
+      "keys:" << qApp->keyboardModifiers() <<
+      "buttons:" << event->buttons();
+
     selected_ = false;
     auto selName = restoreObjColor();
     newGeometryValue();
@@ -347,6 +351,7 @@ void ViewSceneDialog::keyReleaseEvent(QKeyEvent* event)
 //TODO: refactor duplication!!!
 void ViewSceneDialog::selectObject(const int x, const int y)
 {
+  qDebug() << __FILE__ << __FUNCTION__;
   LOG_DEBUG("ViewSceneDialog::asyncExecute before locking");
 
   Guard lock(Modules::Render::ViewScene::mutex_.get());
@@ -435,7 +440,7 @@ void ViewSceneDialog::selectObject(const int x, const int y)
       return;
     spire->removeAllGeomObjects();
   }
-
+  qDebug() << "~" << __FUNCTION__;
 }
 
 void ViewSceneDialog::closeEvent(QCloseEvent *evt)

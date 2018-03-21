@@ -336,7 +336,7 @@ namespace SCIRun {
       bool foundWidget(const glm::ivec2& pos);
 
       // update selected widget
-      void updateWidget(const glm::ivec2& pos);
+      void updateWidget(const glm::ivec2& mousePos, MouseButton btn);
 
       // make sure clipping plane number matches
       void checkClippingPlanes(int n);
